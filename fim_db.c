@@ -12,7 +12,8 @@ static sqlite3 *db;
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
 #define INSERT_PATH "INSERT INTO inode_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
-#define GET_PATH    "SELECT * FROM inode_data,  WHERE inode = ?"
+#define GET_PATH    "SELECT dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime, path, path, inode_id, mode, last_event, entry_type, scanned, options, checksum \
+                    FROM inode_data INNER JOIN inode_path ON inode_path.inode_id = inode_data.rowid AND inode_path.path = ?"
 #define LAST_ROWID "SELECT last_insert_rowid()"
 #define GET_ALL_ENTRIES    "SELECT inode_path.path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM inode_data INNER JOIN inode_path ON inode_id = inode;"
 
