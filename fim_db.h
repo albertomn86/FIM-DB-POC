@@ -1,3 +1,4 @@
+#include "dependencies.h"
 
 /*
 
@@ -35,6 +36,8 @@ CREATE TABLE inode_data (
 #define FIM_DB_PATH "/var/ossec/var/fim_db.sql"
 
 #define DB_ERR -1
+
+extern const char *schema_fim_sql;
 
 const char * fim_db_err_to_str(int err);
 
@@ -99,7 +102,7 @@ int fim_db_remove_inode(const char * inode);
  * @param file_path
  * @return List of fim_entry_data.
  */
-fim_entry_data ** fim_db_get_inode(const char * file_path);
+fim_entry_data * fim_db_get_inode(const char * file_path);
 
 
 /**

@@ -1,7 +1,8 @@
 #include <pthread.h>
-#include "sqlite3.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <sqlite3.h>
 #include "fim_db.h"
-#include "dependencies.h"
 
 static pthread_mutex_t fim_db_mutex;
 
@@ -64,7 +65,7 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
             // Insert in inode_path
             sqlite3_prepare_v2(db, INSERT_PATH, -1, &stmt, 0);
 
-            sqlite3_bind_int(stmt, 1, file_path);
+            sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
             sqlite3_bind_int(stmt, 2, row_id);
             sqlite3_bind_int(stmt, 3, entry->mode);
             sqlite3_bind_int(stmt, 4, entry->last_event);
@@ -183,7 +184,7 @@ fim_entry_data * fim_db_get_inode(const char * inode) { // mirar -> dev:inode
         entry->hash_sha256 = (char *)sqlite3_column_text(stmt, 11);
         entry->mode = (unsigned int)sqlite3_column_int(stmt, 12);
         entry->last_event = (time_t)sqlite3_column_int(stmt, 13);
-        entry->entry_type = (char *)sqlite3_column_text(stmt, 14); // revisar
+        entry->entry_type = sqlite3_column_int(stmt, 14); // revisar
         entry->scanned = (time_t)sqlite3_column_int(stmt, 15);
         entry->options = (time_t)sqlite3_column_int(stmt, 16);
         entry->checksum = (char *)sqlite3_column_text(stmt, 17);
@@ -220,7 +221,7 @@ fim_entry_data * fim_db_get_path(const char * file_path) {
         entry->hash_sha256 = (char *)sqlite3_column_text(stmt, 11);
         entry->mode = (unsigned int)sqlite3_column_int(stmt, 12);
         entry->last_event = (time_t)sqlite3_column_int(stmt, 13);
-        entry->entry_type = (char *)sqlite3_column_text(stmt, 14); // revisar
+        entry->entry_type = sqlite3_column_int(stmt, 14); // revisar
         entry->scanned = (time_t)sqlite3_column_int(stmt, 15);
         entry->options = (time_t)sqlite3_column_int(stmt, 16);
         entry->checksum = (char *)sqlite3_column_text(stmt, 17);

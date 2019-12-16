@@ -3,6 +3,13 @@
 #include <sys/types.h>
 #include <sqlite3.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#include <grp.h>
 
 /* COPIADA PARA LA PRUEBA */
 int wdb_create_file(const char *path, const char *source) {
@@ -81,4 +88,60 @@ int wdb_create_file(const char *path, const char *source) {
     }
 
     return 0;
+}
+
+/* Check if a file exists */
+int w_is_file(const char * const file)
+{
+    FILE *fp;
+    fp = fopen(file, "r");
+    if (fp) {
+        fclose(fp);
+        return (1);
+    }
+    return (0);
+}
+
+void mdebug1(const char *msg, ...) {
+    if (debug_level >= 1) {
+        va_list ap;
+        va_start(ap, msg);
+        char buffer[max_size];
+        vsnprintf(buffer, max_size, msg, ap);
+        fprintf(stdout, "%s", buffer);
+        va_end(ap);
+    }
+}
+
+void merror(const char *msg, ...) {
+    if (debug_level >= 1) {
+        va_list ap;
+        va_start(ap, msg);
+        char buffer[max_size];
+        vsnprintf(buffer, max_size, msg, ap);
+        fprintf(stderr, "%s", buffer);
+        va_end(ap);
+    }
+}
+
+uid_t Privsep_GetUser(const char *name)
+{
+    struct passwd *pw;
+    pw = getpwnam(name);
+    if (pw == NULL) {
+        return ((uid_t)-1);
+    }
+
+    return (pw->pw_uid);
+}
+
+gid_t Privsep_GetGroup(const char *name)
+{
+    struct group *grp;
+    grp = getgrnam(name);
+    if (grp == NULL) {
+        return ((gid_t)-1);
+    }
+
+    return (grp->gr_gid);
 }
