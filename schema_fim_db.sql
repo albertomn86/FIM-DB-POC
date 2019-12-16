@@ -18,7 +18,7 @@ CREATE TABLE inode_path (
 );
 
 CREATE TABLE inode_data (
-    dev TEXT,
+    dev INTEGER,
     inode INTEGER,
     size INTEGER,
     perm TEXT,

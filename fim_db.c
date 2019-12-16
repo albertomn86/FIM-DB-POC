@@ -7,8 +7,10 @@ static pthread_mutex_t fim_db_mutex;
 
 static sqlite3 *db;
 
-#define INSERT_DATA "INSERT INTO inode_data (inode_id, size, perm, attributes, uid, gid, user_name, group_name, mtime, hash_md5, hash_sha1, hash_sha256, mode, last_event, entry_type, scanned, options, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-#define INSERT_PATH "INSERT INTO inode_path (path, inode) VALUES (?, ?);"
+#define INSERT_DATA "INSERT INTO inode_data (dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
+#define INSERT_PATH "INSERT INTO inode_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) \
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
 #define LAST_ROWID "SELECT last_insert_rowid()"
 
 
@@ -38,28 +40,19 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
 
     sqlite3_prepare_v2(db, INSERT_DATA, -1, &stmt, NULL);
 
-    char dev_inode[128] = {0};
-    snprintf(dev_inode, 127, "%ul:%ul", entry->dev, entry->inode);
-
-    sqlite3_bind_text(stmt, 1, dev_inode, -1, NULL);
-    sqlite3_bind_int(stmt, 2, entry->size);
-    sqlite3_bind_text(stmt, 3, entry->perm, -1, NULL);
-    sqlite3_bind_text(stmt, 4, entry->attributes, -1, NULL);
-    sqlite3_bind_text(stmt, 5, entry->uid, -1, NULL);
-    sqlite3_bind_text(stmt, 6, entry->gid, -1, NULL);
-    sqlite3_bind_text(stmt, 7, entry->user_name, -1, NULL);
-    sqlite3_bind_text(stmt, 8, entry->group_name, -1, NULL);
-    sqlite3_bind_int(stmt, 9, entry->mtime);
+    sqlite3_bind_int(stmt, 1, entry->dev);
+    sqlite3_bind_int(stmt, 2, entry->inode);
+    sqlite3_bind_int(stmt, 3, entry->size);
+    sqlite3_bind_text(stmt, 4, entry->perm, -1, NULL);
+    sqlite3_bind_text(stmt, 5, entry->attributes, -1, NULL);
+    sqlite3_bind_text(stmt, 6, entry->uid, -1, NULL);
+    sqlite3_bind_text(stmt, 7, entry->gid, -1, NULL);
+    sqlite3_bind_text(stmt, 8, entry->user_name, -1, NULL);
+    sqlite3_bind_text(stmt, 9, entry->group_name, -1, NULL);
     sqlite3_bind_text(stmt, 10, entry->hash_md5, -1, NULL);
     sqlite3_bind_text(stmt, 11, entry->hash_sha1, -1, NULL);
     sqlite3_bind_text(stmt, 12, entry->hash_sha256, -1, NULL);
-    sqlite3_bind_text(stmt, 13, entry->attributes, -1, NULL);
-    sqlite3_bind_int(stmt, 14, entry->mode);
-    sqlite3_bind_int(stmt, 15, entry->last_event);
-    sqlite3_bind_int(stmt, 16, entry->entry_type);
-    sqlite3_bind_int(stmt, 17, entry->scanned);
-    sqlite3_bind_int(stmt, 18, entry->options);
-    sqlite3_bind_text(stmt, 19, entry->checksum, -1, NULL);
+    sqlite3_bind_int(stmt, 13, entry->mtime);
 
     if (sqlite3_step(stmt) == SQLITE_DONE) {
         sqlite3_finalize(stmt);
@@ -68,10 +61,18 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             int row_id = sqlite3_column_int(stmt, 0);
             sqlite3_finalize(stmt);
-            // Insert index
+            // Insert in inode_path
             sqlite3_prepare_v2(db, INSERT_PATH, -1, &stmt, 0);
-            sqlite3_bind_int(stmt, 1, row_id);
-            sqlite3_bind_int(stmt, 2, file_path);
+
+            sqlite3_bind_int(stmt, 1, file_path);
+            sqlite3_bind_int(stmt, 2, row_id);
+            sqlite3_bind_int(stmt, 3, entry->mode);
+            sqlite3_bind_int(stmt, 4, entry->last_event);
+            sqlite3_bind_int(stmt, 5, entry->entry_type);
+            sqlite3_bind_int(stmt, 6, entry->scanned);
+            sqlite3_bind_int(stmt, 7, entry->options);
+            sqlite3_bind_text(stmt, 8, entry->checksum, -1, NULL);
+
             if (sqlite3_step(stmt) == SQLITE_DONE) {
                 sqlite3_finalize(stmt);
                 return 0;
