@@ -108,7 +108,7 @@ void mdebug1(const char *msg, ...) {
         va_start(ap, msg);
         char buffer[max_size];
         vsnprintf(buffer, max_size, msg, ap);
-        fprintf(stdout, "%s", buffer);
+        fprintf(stdout, "%s\n", buffer);
         va_end(ap);
     }
 }
@@ -119,7 +119,7 @@ void merror(const char *msg, ...) {
         va_start(ap, msg);
         char buffer[max_size];
         vsnprintf(buffer, max_size, msg, ap);
-        fprintf(stderr, "%s", buffer);
+        fprintf(stderr, "%s\n", buffer);
         va_end(ap);
     }
 }

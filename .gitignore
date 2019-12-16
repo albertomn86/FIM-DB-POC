@@ -1,3 +1,4 @@
 *.o
 fim_db
 .vscode
+fim.db

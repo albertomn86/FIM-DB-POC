@@ -1,7 +1,7 @@
 #include "dependencies.h"
 
 
-#define FIM_DB_PATH "/var/ossec/var/fim_db.sql"
+#define FIM_DB_PATH "fim.db"
 
 #define DB_ERR -1
 
