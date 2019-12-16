@@ -18,7 +18,8 @@ CREATE TABLE inode_path (
 );
 
 CREATE TABLE inode_data (
-    dev_inode TEXT PRIMARY KEY,
+    dev TEXT,
+    inode INTEGER,
     size INTEGER,
     perm TEXT,
     attributes TEXT,
@@ -30,6 +31,7 @@ CREATE TABLE inode_data (
     hash_sha1 TEXT,
     hash_sha256 TEXT,
     mtime INTEGER,
+    PRIMARY KEY(dev, inode)
 );
 PRAGMA foreign_keys=ON;
 PRAGMA journal_mode=WAL;

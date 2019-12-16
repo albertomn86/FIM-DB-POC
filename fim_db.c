@@ -4,6 +4,7 @@
 #include "dependencies.h"
 
 static pthread_mutex_t fim_db_mutex;
+
 static sqlite3 *db;
 
 #define INSERT_DATA "INSERT INTO inode_data (inode_id, size, perm, attributes, uid, gid, user_name, group_name, mtime, hash_md5, hash_sha1, hash_sha256, mode, last_event, entry_type, scanned, options, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
