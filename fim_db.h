@@ -31,32 +31,6 @@ CREATE TABLE inode_data (
 
 */
 
-// POC
-typedef struct fim_entry_data {
-    // Checksum attributes
-    unsigned int size;
-    char * perm;
-    char * attributes;
-    char * uid;
-    char * gid;
-    char * user_name;
-    char * group_name;
-    unsigned int mtime;
-    unsigned long int inode;
-    os_md5 hash_md5;
-    os_sha1 hash_sha1;
-    os_sha256 hash_sha256;
-
-    // Options
-    fim_event_mode mode;
-    time_t last_event;
-    const char * entry_type;
-    unsigned long int dev;
-    unsigned int scanned;
-    int options;
-    os_sha1 checksum;
-} fim_entry_data;
-
 
 #define FIM_DB_PATH "/var/ossec/var/fim_db.sql"
 
