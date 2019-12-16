@@ -91,7 +91,7 @@ fim_entry_data * fim_db_get_path(const char * file_path);
  * @param callback Callback function (fim_checksum_update, fim_file_report).
  * @return 0 on success, DB_ERROR otherwise.
  */
-int fim_db_get_range(const char * start, const char * end, int (*callback)(void));
+int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_entry_data *));
 
 
 /**
@@ -101,7 +101,7 @@ int fim_db_get_range(const char * start, const char * end, int (*callback)(void)
  * @param callback Callback function (fim_checksum_update, fim_file_report).
  * @return 0 on success, DB_ERROR otherwise.
  */
-int fim_db_get_all(int (*callback)(void));
+int fim_db_get_all(int (*callback)(fim_entry_data *));
 
 
 /**

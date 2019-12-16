@@ -15,8 +15,10 @@ static sqlite3 *db;
 #define GET_PATH    "SELECT dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime, path, path, inode_id, mode, last_event, entry_type, scanned, options, checksum \
                     FROM inode_data INNER JOIN inode_path ON inode_path.inode_id = inode_data.rowid AND inode_path.path = ?"
 #define LAST_ROWID "SELECT last_insert_rowid()"
-#define GET_ALL_ENTRIES    "SELECT inode_path.path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM inode_data INNER JOIN inode_path ON inode_id = inode;"
+#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM inode_data INNER JOIN inode_path ON inode_id = inode;"
+#define GET_ALL_ORDER_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM inode_data INNER JOIN inode_path ON inode_id = inode ORDER BY PATH ASC;"
 
+static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
 
 int fim_db_clean(void) {
     if(w_is_file(FIM_DB_PATH)) {
@@ -27,13 +29,21 @@ int fim_db_clean(void) {
 
 
 int fim_db_init(void) {
+    /* ~~~~~~~~~ COMENTADO HASTA QUE TENGAMOS LA FUNCIÓN DE INSERCIÓN LISTA
     if(fim_db_clean() < 0) {
         return DB_ERR;
     }
+    */
 
     if (wdb_create_file(FIM_DB_PATH, schema_fim_sql) < 0) {
         return DB_ERR;
     }
+
+    if (sqlite3_open_v2(FIM_DB_PATH, &db, SQLITE_OPEN_READWRITE, NULL)) { // ~~~~~~~~~~ FOR TESTING PURPOSES
+        return DB_ERR;
+    }
+
+    return 0;
 }
 
 
@@ -252,37 +262,79 @@ int fim_db_set_not_scanned(void) {
     return ret;
 }
 
-int fim_db_get_all(int (*callback)(void)) {
+int fim_db_get_all(int (*callback)(fim_entry_data *)) {
     sqlite3_stmt *stmt = NULL;
+    int result;
 
-    sqlite3_prepare_v2(db, GET_ALL_ENTRIES, -1, &stmt, NULL);
-
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-
-        fim_entry_data *entry = calloc(1, sizeof(fim_entry_data));
-
-        entry->size = (unsigned int)sqlite3_column_int(stmt, 1);
-        entry->perm = (char *)sqlite3_column_text(stmt, 2);
-        entry->attributes = (char *)sqlite3_column_text(stmt, 3);
-        entry->uid = (char *)sqlite3_column_text(stmt, 4);
-        entry->gid = (char *)sqlite3_column_text(stmt, 5);
-        entry->user_name = (char *)sqlite3_column_text(stmt, 6);
-        entry->group_name = (char *)sqlite3_column_text(stmt, 7);
-        entry->mtime = (unsigned int)sqlite3_column_int(stmt, 8);
-        entry->hash_md5 = (char *)sqlite3_column_text(stmt, 9);
-        entry->hash_sha1 = (char *)sqlite3_column_text(stmt, 10);
-        entry->hash_sha256 = (char *)sqlite3_column_text(stmt, 11);
-        entry->mode = (unsigned int)sqlite3_column_int(stmt, 12);
-        entry->last_event = (time_t)sqlite3_column_int(stmt, 13);
-        entry->entry_type = sqlite3_column_int(stmt, 14);
-        entry->scanned = (time_t)sqlite3_column_int(stmt, 15);
-        entry->options = (time_t)sqlite3_column_int(stmt, 16);
-        entry->checksum = (char *)sqlite3_column_text(stmt, 17);
-
-        sqlite3_finalize(stmt);
-        return entry;
+    if (sqlite3_prepare_v2(db, GET_ALL_ENTRIES, -1, &stmt, NULL)  != SQLITE_OK) {
+        merror("SQL ERROR: %s", sqlite3_errmsg(db));
+        return -1;
     }
+
+    while (result = sqlite3_step(stmt), result == SQLITE_ROW) {
+        fim_entry_data *entry = fim_decode_full_row(stmt);
+        callback((void *) entry);
+    }
+
     sqlite3_finalize(stmt);
-    return NULL;
-    return 0;
+    return result != SQLITE_DONE ? -1 : 0;
+}
+
+int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_entry_data *)) {
+    sqlite3_stmt *stmt = NULL;
+    int result;
+
+    if (sqlite3_prepare_v2(db, GET_ALL_ORDER_ENTRIES, -1, &stmt, NULL)  != SQLITE_OK) {
+        merror("SQL ERROR: %s", sqlite3_errmsg(db));
+        return -1;
+    }
+
+    char init_found = 0;
+    while (result = sqlite3_step(stmt), result == SQLITE_ROW) {
+        char *path = (char *)sqlite3_column_text(stmt, 0);
+        if (!path) {
+            continue;
+        }
+
+        if (!init_found && strcmp(start, path)) {
+            continue;
+        }
+        init_found = 1;
+
+        fim_entry_data *entry = fim_decode_full_row(stmt);
+        callback((void *) entry);
+
+        if (!strcmp(end, path)) {
+            break;;
+        }
+    }
+
+    sqlite3_finalize(stmt);
+    return result != SQLITE_DONE ? -1 : 0;
+}
+
+fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt) {
+    fim_entry_data *entry = calloc(1, sizeof(fim_entry_data));
+
+    w_strdup((char *)sqlite3_column_text(stmt, 0), entry->path);
+    entry->inode = (unsigned int)sqlite3_column_int(stmt, 1);
+    entry->mode = (unsigned int)sqlite3_column_int(stmt, 2);
+    entry->last_event = (unsigned int)sqlite3_column_int(stmt, 3);
+    entry->entry_type = (unsigned int)sqlite3_column_int(stmt, 4);
+    entry->scanned = (unsigned int)sqlite3_column_int(stmt, 5);
+    entry->options = (unsigned int)sqlite3_column_int(stmt, 6);
+    entry->dev = (unsigned int)sqlite3_column_int(stmt, 7);
+    entry->size = (unsigned int)sqlite3_column_int(stmt, 8);
+    w_strdup((char *)sqlite3_column_text(stmt, 9), entry->perm);
+    w_strdup((char *)sqlite3_column_text(stmt, 10), entry->attributes);
+    w_strdup((char *)sqlite3_column_text(stmt, 11), entry->uid);
+    w_strdup((char *)sqlite3_column_text(stmt, 12), entry->gid);
+    w_strdup((char *)sqlite3_column_text(stmt, 13), entry->user_name);
+    w_strdup((char *)sqlite3_column_text(stmt, 14), entry->group_name);
+    w_strdup((char *)sqlite3_column_text(stmt, 15), entry->hash_md5);
+    w_strdup((char *)sqlite3_column_text(stmt, 16), entry->hash_sha1);
+    w_strdup((char *)sqlite3_column_text(stmt, 17), entry->hash_sha256);
+    entry->mtime = (unsigned int)sqlite3_column_int(stmt, 18);
+
+    return entry;
 }

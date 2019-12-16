@@ -6,7 +6,7 @@
  * and/or modify it under the terms of GPLv2.
  */
 
-CREATE TABLE inode_path (
+CREATE TABLE IF NOT EXISTS inode_path (
     path TEXT PRIMARY KEY,
     inode_id INTEGER,
     mode INTEGER,
@@ -17,7 +17,7 @@ CREATE TABLE inode_path (
     checksum TEXT
 );
 
-CREATE TABLE inode_data (
+CREATE TABLE IF NOT EXISTS inode_data (
     dev INTEGER,
     inode INTEGER,
     size INTEGER,

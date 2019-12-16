@@ -5,6 +5,8 @@
 #define debug_level 2
 #define max_size 20000
 typedef struct fim_entry_data {
+    char *path; // Duda ~~~~~~
+
     // Checksum attributes
     unsigned int size;
     char * perm;
