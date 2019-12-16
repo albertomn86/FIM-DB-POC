@@ -162,12 +162,12 @@ exit_err:
 }
 
 
-fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned long int dev) {
+fim_entry_data * fim_db_get_inode(const unsigned long int inode, const unsigned long int dev) {
 
     sqlite3_stmt *stmt = NULL;
 
     sqlite3_prepare_v2(db, "SELECT * FROM inode_data WHERE inode = ?", -1, &stmt, NULL);
-    sqlite3_bind_text(stmt, 1, inode, -1, NULL);
+    sqlite3_bind_int(stmt, 1, inode);
 
     if (sqlite3_step(stmt) == SQLITE_ROW) { // Puede devolver varios!!
 
