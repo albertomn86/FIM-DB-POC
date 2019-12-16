@@ -12,6 +12,7 @@ static sqlite3 *db;
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
 #define INSERT_PATH "INSERT INTO inode_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
+#define GET_PATH    "SELECT * FROM inode_data,  WHERE inode = ?"
 #define LAST_ROWID "SELECT last_insert_rowid()"
 
 
@@ -185,7 +186,7 @@ fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned
         entry->hash_sha256 = (char *)sqlite3_column_text(stmt, 11);
         entry->mode = (unsigned int)sqlite3_column_int(stmt, 12);
         entry->last_event = (time_t)sqlite3_column_int(stmt, 13);
-        entry->entry_type = sqlite3_column_int(stmt, 14); // revisar
+        entry->entry_type = sqlite3_column_int(stmt, 14);
         entry->scanned = (time_t)sqlite3_column_int(stmt, 15);
         entry->options = (time_t)sqlite3_column_int(stmt, 16);
         entry->checksum = (char *)sqlite3_column_text(stmt, 17);
@@ -202,7 +203,7 @@ fim_entry_data * fim_db_get_path(const char * file_path) {
 
     sqlite3_stmt *stmt = NULL;
 
-    sqlite3_prepare_v2(db, "SELECT * FROM inode_data WHERE inode = ?", -1, &stmt, NULL);
+    sqlite3_prepare_v2(db, GET_PATH, -1, &stmt, NULL);
     sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
 
     if (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -222,7 +223,7 @@ fim_entry_data * fim_db_get_path(const char * file_path) {
         entry->hash_sha256 = (char *)sqlite3_column_text(stmt, 11);
         entry->mode = (unsigned int)sqlite3_column_int(stmt, 12);
         entry->last_event = (time_t)sqlite3_column_int(stmt, 13);
-        entry->entry_type = sqlite3_column_int(stmt, 14); // revisar
+        entry->entry_type = sqlite3_column_int(stmt, 14);
         entry->scanned = (time_t)sqlite3_column_int(stmt, 15);
         entry->options = (time_t)sqlite3_column_int(stmt, 16);
         entry->checksum = (char *)sqlite3_column_text(stmt, 17);

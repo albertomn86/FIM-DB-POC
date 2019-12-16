@@ -61,7 +61,7 @@ int fim_db_remove_path(const char * file_path);
  * @param inode
  * @return 1 on success, DB_ERROR otherwise.
  */
-int fim_db_remove_inode(const char * inode);
+int fim_db_remove_inode(const unsigned long int inode, const unsigned long int dev);
 
 
 /**
