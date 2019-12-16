@@ -1,5 +1,5 @@
 #include <pthread.h>
-#include <sqlite3.h>
+#include "sqlite3.h"
 #include "fim_db.h"
 #include "dependencies.h"
 
