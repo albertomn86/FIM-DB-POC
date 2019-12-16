@@ -33,5 +33,6 @@ CREATE TABLE inode_data (
     mtime INTEGER,
     PRIMARY KEY(dev, inode)
 );
+
 PRAGMA foreign_keys=ON;
 PRAGMA journal_mode=WAL;

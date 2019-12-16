@@ -11,9 +11,9 @@ typedef struct fim_entry_data {
     char * group_name;
     unsigned int mtime;
     unsigned long int inode;
-    char hash_md5[33];
-    char hash_sha1[41];
-    char hash_sha256[65];
+    char * hash_md5;
+    char * hash_sha1;
+    char * hash_sha256;
 
     // Options
     unsigned int mode;
@@ -22,7 +22,7 @@ typedef struct fim_entry_data {
     unsigned long int dev;
     unsigned int scanned;
     int options;
-    char checksum[41];
+    char * checksum;
 } fim_entry_data;
 
 int wdb_create_file(const char *path, const char *source);
