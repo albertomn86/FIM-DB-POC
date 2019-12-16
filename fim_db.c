@@ -125,12 +125,13 @@ exit_err:
 }
 
 
-int fim_db_remove_inode(const char * inode) {
+int fim_db_remove_inode(const unsigned long int inode, const unsigned long int dev) {
 
     sqlite3_stmt *stmt = NULL;
 
-    sqlite3_prepare_v2(db, "SELECT rowid FROM inode_data WHERE inode = ?", -1, &stmt, NULL);
-    sqlite3_bind_text(stmt, 1, inode, -1, NULL);
+    sqlite3_prepare_v2(db, "SELECT rowid FROM inode_data WHERE inode = ? AND dev = ?", -1, &stmt, NULL);
+    sqlite3_bind_int(stmt, 1, inode);
+    sqlite3_bind_int(stmt, 2, dev);
 
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         int row_id = sqlite3_column_int(stmt, 0);
@@ -160,7 +161,7 @@ exit_err:
 }
 
 
-fim_entry_data * fim_db_get_inode(const char * inode) { // mirar -> dev:inode
+fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned long int dev) {
 
     sqlite3_stmt *stmt = NULL;
 

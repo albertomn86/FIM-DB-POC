@@ -1,37 +1,5 @@
 #include "dependencies.h"
 
-/*
-
-Databases:
-
-CREATE TABLE inode_path (
-    path TEXT PRIMARY KEY,
-    inode_id INTEGER REFERENCES inode_data(ROWID) ON DELETE CASCADE,
-    mode INTEGER,
-    last_event INTEGER,
-    entry_type INTEGER,
-    scanned INTEGER,
-    options INTEGER,
-    checksum TEXT
-);
-
-CREATE TABLE inode_data (
-    dev_inode TEXT PRIMARY KEY,
-    size INTEGER,
-    perm TEXT,
-    attributes TEXT,
-    uid INTEGER,
-    gid INTEGER,
-    user_name TEXT,
-    group_name TEXT,
-    hash_md5 TEXT,
-    hash_sha1 TEXT,
-    hash_sha256 TEXT,
-    mtime INTEGER,
-);
-
-*/
-
 
 #define FIM_DB_PATH "/var/ossec/var/fim_db.sql"
 
@@ -97,21 +65,22 @@ int fim_db_remove_inode(const char * inode);
 
 
 /**
- * @brief Get entry data using path.
+ * @brief Get entry data using inode.
  *
- * @param file_path
+ * @param inode Inode
+ * @param dev Device
  * @return List of fim_entry_data.
  */
-fim_entry_data * fim_db_get_inode(const char * file_path);
+fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned long int dev);
 
 
 /**
- * @brief Get entry data using inode.
+ * @brief Get entry data using path.
  *
  * @param inode
  * @return fim_entry_data
  */
-fim_entry_data * fim_db_get_path(const char * path);
+fim_entry_data * fim_db_get_path(const char * file_path);
 
 
 /**

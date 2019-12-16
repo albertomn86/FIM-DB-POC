@@ -8,7 +8,7 @@
 
 CREATE TABLE inode_path (
     path TEXT PRIMARY KEY,
-    inode_id INTEGER REFERENCES inode_data(ROWID) ON DELETE CASCADE,
+    inode_id INTEGER,
     mode INTEGER,
     last_event INTEGER,
     entry_type INTEGER,
