@@ -185,7 +185,7 @@ fim_entry_data * fim_db_get_inode(const unsigned long int inode, const unsigned 
 
     sqlite3_stmt *stmt = NULL;
 
-    sqlite3_prepare_v2(db, GET_PATH, -1, &stmt, NULL);
+    sqlite3_prepare_v2(db, GET_INODE, -1, &stmt, NULL);
     sqlite3_bind_int(stmt, 1, inode);
     sqlite3_bind_int(stmt, 2, dev);
 
