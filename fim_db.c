@@ -15,7 +15,7 @@ static sqlite3 *db;
 #define GET_PATH    "SELECT dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime, path, path, inode_id, mode, last_event, entry_type, scanned, options, checksum \
                     FROM inode_data INNER JOIN entry_path ON entry_path.inode_id = entry_data.rowid AND entry_path.path = ?"
 #define LAST_ROWID "SELECT last_insert_rowid()"
-#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = inode ORDER BY PATH ASC;"
+#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;"
 
 static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
 
@@ -292,7 +292,8 @@ int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_e
         callback((void *) entry);
 
         if (end && !strcmp(end, path)) {
-            break;;
+            result = SQLITE_DONE;
+            break;
         }
     }
 
