@@ -65,7 +65,7 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
     sqlite3_bind_text(stmt, 11, entry->hash_sha1, -1, NULL);
     sqlite3_bind_text(stmt, 12, entry->hash_sha256, -1, NULL);
     sqlite3_bind_int(stmt, 13, entry->mtime);
-
+    // LOCK MUTEX
     if (sqlite3_step(stmt) == SQLITE_DONE) {
         sqlite3_finalize(stmt);
         // Get ID
@@ -87,11 +87,13 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
 
             if (sqlite3_step(stmt) == SQLITE_DONE) {
                 sqlite3_finalize(stmt);
+                // UNLOCK MUTEX
                 return 0;
             }
         }
     }
     sqlite3_finalize(stmt);
+    // UNLOCK MUTEX
     return -1;
 }
 

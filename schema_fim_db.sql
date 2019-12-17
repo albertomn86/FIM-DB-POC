@@ -7,14 +7,15 @@
  */
 
 CREATE TABLE IF NOT EXISTS entry_path (
-    path TEXT PRIMARY KEY,
+    path TEXT,
     inode_id INTEGER,
     mode INTEGER,
     last_event INTEGER,
     entry_type INTEGER,
     scanned INTEGER,
     options INTEGER,
-    checksum TEXT NOT NULL
+    checksum TEXT NOT NULL,
+    PRIMARY KEY(path, inode_id)
 );
 
 CREATE TABLE IF NOT EXISTS entry_data (
