@@ -32,5 +32,17 @@ int main() {
         return 1;
     }
 
+    announce_function("fim_db_set_all_unscanned");
+    if (fim_db_set_all_unscanned()) {
+        merror("Error in fim_db_set_all_unscanned() function.");
+        return 1;
+    }
+
+    announce_function("fim_db_delete_unscanned");
+    if (fim_db_delete_unscanned()) {
+        merror("Error in fim_db_delete_unscanned() function.");
+        return 1;
+    }
+
     return 0;
 }

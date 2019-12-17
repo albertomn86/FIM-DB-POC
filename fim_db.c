@@ -16,8 +16,11 @@ static sqlite3 *db;
                     FROM inode_data INNER JOIN entry_path ON entry_path.inode_id = entry_data.rowid AND entry_path.path = ?"
 #define LAST_ROWID "SELECT last_insert_rowid()"
 #define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;"
+#define SET_ALL_UNSCANNED "UPDATE entry_path SET scanned = 0;"
+#define DELETE_UNSCANNED "DELETE FROM entry_path WHERE scanned = 0;"
 
 static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
+static int fim_exec_simple_query(char *query);
 
 int fim_db_clean(void) {
     if(w_is_file(FIM_DB_PATH)) {
@@ -94,7 +97,7 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
     }
     sqlite3_finalize(stmt);
     // UNLOCK MUTEX
-    return -1;
+    return DB_ERR;
 }
 
 
@@ -134,7 +137,7 @@ int fim_db_remove_path(const char * file_path) {
 
 exit_err:
     sqlite3_finalize(stmt);
-    return -1;
+    return DB_ERR;
 }
 
 
@@ -170,7 +173,7 @@ int fim_db_remove_inode(const unsigned long int inode, const unsigned long int d
 
 exit_err:
     sqlite3_finalize(stmt);
-    return -1;
+    return DB_ERR;
 }
 
 
@@ -273,7 +276,7 @@ int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_e
 
     if (sqlite3_prepare_v2(db, GET_ALL_ENTRIES, -1, &stmt, NULL)  != SQLITE_OK) {
         merror("SQL ERROR: %s", sqlite3_errmsg(db));
-        return -1;
+        return DB_ERR;
     }
 
     char init_found = 0;
@@ -325,4 +328,23 @@ fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt) {
     entry->mtime = (unsigned int)sqlite3_column_int(stmt, 18);
 
     return entry;
+}
+
+int fim_db_set_all_unscanned(void) {
+    return fim_exec_simple_query(SET_ALL_UNSCANNED);
+}
+
+int fim_db_delete_unscanned(void) {
+    return fim_exec_simple_query(DELETE_UNSCANNED);
+}
+
+int fim_exec_simple_query(char *query) {
+    char *error = NULL;
+    sqlite3_exec(db, query, NULL, NULL, &error);
+    if (error) {
+        merror("SQL ERROR: %s", error);
+        sqlite3_free(error);
+        return DB_ERR;
+    }
+    return 0;
 }

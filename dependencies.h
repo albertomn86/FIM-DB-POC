@@ -2,7 +2,7 @@
 #include <sys/types.h>
 #include <string.h>
 
-#define debug_level 2
+#define debug_level 0
 #define max_size 20000
 typedef struct fim_entry_data {
     char *path; // Duda ~~~~~~
