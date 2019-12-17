@@ -15,8 +15,7 @@ static sqlite3 *db;
 #define GET_PATH    "SELECT dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime, path, path, inode_id, mode, last_event, entry_type, scanned, options, checksum \
                     FROM inode_data INNER JOIN entry_path ON entry_path.inode_id = entry_data.rowid AND entry_path.path = ?"
 #define LAST_ROWID "SELECT last_insert_rowid()"
-#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = inode;"
-#define GET_ALL_ORDER_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = inode ORDER BY PATH ASC;"
+#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = inode ORDER BY PATH ASC;"
 
 static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
 
@@ -263,28 +262,14 @@ int fim_db_set_not_scanned(void) {
 }
 
 int fim_db_get_all(int (*callback)(fim_entry_data *)) {
-    sqlite3_stmt *stmt = NULL;
-    int result;
-
-    if (sqlite3_prepare_v2(db, GET_ALL_ENTRIES, -1, &stmt, NULL)  != SQLITE_OK) {
-        merror("SQL ERROR: %s", sqlite3_errmsg(db));
-        return -1;
-    }
-
-    while (result = sqlite3_step(stmt), result == SQLITE_ROW) {
-        fim_entry_data *entry = fim_decode_full_row(stmt);
-        callback((void *) entry);
-    }
-
-    sqlite3_finalize(stmt);
-    return result != SQLITE_DONE ? -1 : 0;
+    return fim_db_get_range(NULL, NULL, callback);
 }
 
 int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_entry_data *)) {
     sqlite3_stmt *stmt = NULL;
     int result;
 
-    if (sqlite3_prepare_v2(db, GET_ALL_ORDER_ENTRIES, -1, &stmt, NULL)  != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, GET_ALL_ENTRIES, -1, &stmt, NULL)  != SQLITE_OK) {
         merror("SQL ERROR: %s", sqlite3_errmsg(db));
         return -1;
     }
@@ -296,7 +281,7 @@ int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_e
             continue;
         }
 
-        if (!init_found && strcmp(start, path)) {
+        if (!init_found && start && strcmp(start, path)) {
             continue;
         }
         init_found = 1;
@@ -304,13 +289,13 @@ int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_e
         fim_entry_data *entry = fim_decode_full_row(stmt);
         callback((void *) entry);
 
-        if (!strcmp(end, path)) {
+        if (end && !strcmp(end, path)) {
             break;;
         }
     }
 
     sqlite3_finalize(stmt);
-    return result != SQLITE_DONE ? -1 : 0;
+    return result != SQLITE_DONE ? DB_ERR : 0;
 }
 
 fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt) {
