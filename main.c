@@ -12,29 +12,54 @@ void announce_function(char *function) {
     printf("***Testing %s***\n", function);
 }
 
+int print_fim_entry_data_full(fim_entry_data *entry) {
+
+    printf("PATH: %s\n", entry->path);
+    printf("SIZE: %i\n", entry->size);
+    printf("PERM: %s\n", entry->perm);
+    printf("ATTRB: %s\n", entry->attributes);
+    printf("UID: %s\n", entry->uid);
+    printf("GID: %s\n", entry->gid);
+    printf("UNAME: %s\n", entry->user_name);
+    printf("GNAME: %s\n", entry->group_name);
+    printf("MTIME: %i\n", entry->mtime);
+    printf("INODE: %lu\n", entry->inode);
+    printf("MD5: %s\n", entry->hash_md5);
+    printf("SHA1: %s\n", entry->hash_sha1);
+    printf("SHA256: %s\n", entry->hash_sha256);
+    printf("MODE: %i\n", entry->mode);
+    printf("LAST: %lu\n", entry->last_event);
+    printf("ENTRY: %i\n", entry->entry_type);
+    printf("DEV: %lu\n", entry->dev);
+    printf("SCANNED: %i\n", entry->scanned);
+    printf("OPTIONS: %i\n", entry->options);
+    printf("CHECKSUM: %s\n", entry->checksum);
+
+}
+
 int print_fim_entry_data(fim_entry_data *entry) {
-    printf("%s|%i|%s|%s|%s|%s|%s|%s|%i|%li|%s|%s|%s|%i|%li|%i|%lu|%i|%i|%s",
-        entry->path,
-        entry->size,
-        entry->perm,
-        entry->attributes,
-        entry->uid,
-        entry->gid,
-        entry->user_name,
-        entry->group_name,
-        entry->mtime,
-        entry->inode,
-        entry->hash_md5,
-        entry->hash_sha1,
-        entry->hash_sha256,
-        entry->mode,
-        entry->last_event,
-        entry->entry_type,
-        entry->dev,
-        entry->scanned,
-        entry->options,
-        entry->checksum
-    );
+
+    printf("%s|", entry->path);
+    printf("%i|", entry->size);
+    printf("%s|", entry->perm);
+    printf("%s|", entry->attributes);
+    printf("%s|", entry->uid);
+    printf("%s|", entry->gid);
+    printf("%s|", entry->user_name);
+    printf("%s|", entry->group_name);
+    printf("%i|", entry->mtime);
+    printf("%lu|", entry->inode);
+    printf("%s|", entry->hash_md5);
+    printf("%s|", entry->hash_sha1);
+    printf("%s|", entry->hash_sha256);
+    printf("%i|", entry->mode);
+    printf("%lu|", entry->last_event);
+    printf("%i|", entry->entry_type);
+    printf("%lu|", entry->dev);
+    printf("%i|", entry->scanned);
+    printf("%i|", entry->options);
+    printf("%s\n", entry->checksum);
+
 }
 
 int main() {
@@ -63,15 +88,22 @@ int main() {
         return 1;
     }
 
+    mdebug1("~~~~~~~~~ fim_db_get_path ~~~~~~~~~");
+
+    fim_entry_data *resp = fim_db_get_path("/home/user/test/file15");
+    if (resp) {
+        print_fim_entry_data(resp);
+    } else {
+        printf("Not found\n");
+    }
+
     announce_function("fim_db_delete_unscanned");
     if (fim_db_delete_unscanned()) {
         merror("Error in fim_db_delete_unscanned() function.");
         return 1;
     }
-    mdebug1("~~~~~~~~~ fim_db_get_path ~~~~~~~~~");
 
-    fim_entry_data *resp = fim_db_get_path("/home/user/test/file15");
-    print_fim_entry_data(resp);
+
 
 
     return 0;
