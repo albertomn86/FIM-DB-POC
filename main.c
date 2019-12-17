@@ -12,6 +12,31 @@ void announce_function(char *function) {
     printf("***Testing %s***\n", function);
 }
 
+int print_fim_entry_data(fim_entry_data *entry) {
+    printf("%s|%i|%s|%s|%s|%s|%s|%s|%i|%li|%s|%s|%s|%i|%li|%i|%lu|%i|%i|%s",
+        entry->path,
+        entry->size,
+        entry->perm,
+        entry->attributes,
+        entry->uid,
+        entry->gid,
+        entry->user_name,
+        entry->group_name,
+        entry->mtime,
+        entry->inode,
+        entry->hash_md5,
+        entry->hash_sha1,
+        entry->hash_sha256,
+        entry->mode,
+        entry->last_event,
+        entry->entry_type,
+        entry->dev,
+        entry->scanned,
+        entry->options,
+        entry->checksum
+    );
+}
+
 int main() {
     announce_function("fim_db_init");
     if (fim_db_init() == DB_ERR) {
@@ -43,6 +68,11 @@ int main() {
         merror("Error in fim_db_delete_unscanned() function.");
         return 1;
     }
+    mdebug1("~~~~~~~~~ fim_db_get_path ~~~~~~~~~");
+
+    fim_entry_data *resp = fim_db_get_path("/home/user/test/file15");
+    print_fim_entry_data(resp);
+
 
     return 0;
 }

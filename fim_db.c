@@ -12,8 +12,7 @@ static sqlite3 *db;
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
 #define INSERT_PATH "INSERT INTO entry_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
-#define GET_PATH    "SELECT dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime, path, path, inode_id, mode, last_event, entry_type, scanned, options, checksum \
-                    FROM inode_data INNER JOIN entry_path ON entry_path.inode_id = entry_data.rowid AND entry_path.path = ?"
+#define GET_PATH    "SELECT entry_path.*, entry_data.* FROM entry_path INEER JOIN entry_data ON path = ? AND entry_data.rowid = entry_path.inode_id"
 #define LAST_ROWID "SELECT last_insert_rowid()"
 #define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;"
 #define SET_ALL_UNSCANNED "UPDATE entry_path SET scanned = 0;"
@@ -184,7 +183,7 @@ fim_entry_data * fim_db_get_inode(const unsigned long int inode, const unsigned 
     sqlite3_prepare_v2(db, "SELECT * FROM entry_data WHERE inode = ?", -1, &stmt, NULL);
     sqlite3_bind_int(stmt, 1, inode);
 
-    if (sqlite3_step(stmt) == SQLITE_ROW) { // Puede devolver varios!!
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
 
         fim_entry_data *entry = calloc(1, sizeof(fim_entry_data));
 
@@ -225,6 +224,7 @@ fim_entry_data * fim_db_get_path(const char * file_path) {
 
         fim_entry_data *entry = calloc(1, sizeof(fim_entry_data));
 
+        w_strdup((char *)sqlite3_column_text(stmt, 0), entry->path);
         entry->size = (unsigned int)sqlite3_column_int(stmt, 1);
         w_strdup((char *)sqlite3_column_text(stmt, 2), entry->perm);
         w_strdup((char *)sqlite3_column_text(stmt, 3), entry->attributes);
