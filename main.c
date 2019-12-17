@@ -12,6 +12,50 @@ int get_all_callback(fim_entry_data *entry) {
     return 0;
 }
 
+static fim_entry_data *fill_entry_struct(
+    unsigned int size,
+    const char * perm,
+    const char * attributes,
+    const char * uid,
+    const char * gid,
+    const char * user_name,
+    const char * group_name,
+    unsigned int mtime,
+    unsigned long int inode,
+    const char * hash_md5,
+    const char * hash_sha1,
+    const char * hash_sha256,
+    int mode,
+    time_t last_event,
+    int entry_type,
+    unsigned long int dev,
+    unsigned int scanned,
+    int options,
+    const char * checksum
+) {
+    fim_entry_data *data = calloc(1, sizeof(fim_entry_data));
+    data->size = size;
+    data->perm = strdup(perm);
+    data->attributes = strdup(attributes);
+    data->uid = strdup(uid);
+    data->gid = strdup(gid);
+    data->user_name = strdup(user_name);
+    data->group_name = strdup(group_name);;
+    data->mtime = mtime;
+    data->inode = inode;
+    data->hash_md5 = strdup(hash_md5);
+    data->hash_sha1 = strdup(hash_sha1);
+    data->hash_sha256 = strdup(hash_sha256);
+    data->mode = mode;
+    data->last_event = last_event;
+    data->entry_type = entry_type;
+    data->dev = dev;
+    data->scanned = scanned;
+    data->options = options;
+    data->checksum = strdup(checksum);
+    return data;
+}
+
 void announce_function(char *function) {
     printf("\n***Testing %s***\n", function);
 }
@@ -108,6 +152,61 @@ int main() {
         return 1;
     }
 
+    announce_function("fim_db_insert");
+    fim_entry_data *data1 = fill_entry_struct(
+        1500,
+        "0664",
+        "r--r--r--",
+        "100",
+        "1000",
+        "test",
+        "testing",
+        1570184223,
+        606060,
+        "3691689a513ace7e508297b583d7050d",
+        "07f05add1049244e7e71ad0f54f24d8094cd8f8b",
+        "672a8ceaea40a441f0268ca9bbb33e99f9643c6262667b61fbe57694df224d40",
+        2,
+        1570184220,
+        1,
+        12345678,
+        123456,
+        511,
+        "07f05add1049244e7e71ad0f54f24d8094cd8f8b"
+    );
+
+    fim_entry_data *data2 = fill_entry_struct(
+        1500,
+        "0664",
+        "r--r--r--",
+        "100",
+        "1000",
+        "test",
+        "testing",
+        1570184223,
+        606060,
+        "3691689a513ace7e508297b583d7050d",
+        "07f05add1049244e7e71ad0f54f24d8094cd8f8b",
+        "672a8ceaea40a441f0268ca9bbb33e99f9643c6262667b61fbe57694df224d40",
+        1,
+        1570184220,
+        0,
+        12345,
+        123456,
+        511,
+        "07f05add1049244e7e71ad0f54f24d8094cd8f8b"
+    );
+
+    if (fim_db_insert("/home/user/test/file21", data1)) {
+        merror("Error in fim_db_insert() function.");
+    }
+    free_entry_data(data1);
+    if (fim_db_insert("/home/user/test/file22", data2)) {
+        merror("Error in fim_db_insert() function.");
+    }
+    free_entry_data(data2);
+
+
     announce_function("fim_db_get_all");
     if (fim_db_get_all(get_all_callback)) {
         merror("Error in fim_db_get_all() function.");
@@ -141,6 +240,7 @@ int main() {
     }
     while (resp[i++].path) {
         print_fim_entry_data(resp);
+        free_entry_data(resp);
     }
 
     announce_function("fim_db_update");
@@ -158,6 +258,7 @@ int main() {
     }
     while (resp2[j++].path) {
         print_fim_entry_data(resp2);
+        free_entry_data(resp2);
     }
 
     announce_function("fim_db_delete_unscanned");

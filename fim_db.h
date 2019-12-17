@@ -112,7 +112,7 @@ int fim_db_set_all_unscanned(void);
 
 
 /**
- * @brief
+ * @brief Delete all unescanned entries.
  *
  * @return 0 on success, DB_ERROR otherwise.
  */

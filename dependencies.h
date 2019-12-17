@@ -1,6 +1,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define debug_level 0
 #define max_size 20000
@@ -40,3 +41,5 @@ gid_t Privsep_GetGroup(const char *name) __attribute__((nonnull));
 #define os_calloc(x,y,z) ((z = (__typeof__(z)) calloc(x,y)))?(void)1:exit(1)
 #define os_strdup(x,y) ((y = strdup(x)))?(void)1:exit(1)
 #define w_strdup(x,y) ({ int retstr = 0; if (x) { os_strdup(x, y);} else retstr = 1; retstr;})
+#define os_free(x) if(x){free(x);x=NULL;}
+void free_entry_data(fim_entry_data * data);
