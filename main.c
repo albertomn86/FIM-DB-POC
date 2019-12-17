@@ -96,6 +96,8 @@ int test_fim_db_update(fim_entry_data *resp) {
     if (updated_entry) {
         print_fim_entry_data(updated_entry);
     }
+
+    return 0;
 }
 
 int main() {
@@ -111,7 +113,6 @@ int main() {
         return 1;
     }
 
-
     announce_function("fim_db_get_range");
     if (fim_db_get_range("/home/user/test/file15", "/home/user/test/file3", get_all_callback)) { // Reemplazar por los paths de test. Estos son de mis pruebas ~~~~~~~~~~~~~~~~~~~~~~~
         merror("Error in fim_db_get_range() function.");
@@ -124,11 +125,10 @@ int main() {
         return 1;
     }
 
-
     announce_function("fim_db_get_path");
     fim_entry_data *resp = fim_db_get_path(TEST_PATH);
     unsigned int i = 0;
-    while (resp[i++].path) {
+    while (resp && resp[i++].path) {
         print_fim_entry_data(resp);
     }
 
@@ -138,13 +138,11 @@ int main() {
         return 1;
     }
 
-/*
     announce_function("fim_db_delete_unscanned");
     if (fim_db_delete_unscanned()) {
         merror("Error in fim_db_delete_unscanned() function.");
         return 1;
     }
-*/
 
     return 0;
 }

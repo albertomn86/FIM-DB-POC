@@ -114,14 +114,12 @@ void mdebug1(const char *msg, ...) {
 }
 
 void merror(const char *msg, ...) {
-    if (debug_level >= 1) {
-        va_list ap;
-        va_start(ap, msg);
-        char buffer[max_size];
-        vsnprintf(buffer, max_size, msg, ap);
-        fprintf(stderr, "%s\n", buffer);
-        va_end(ap);
-    }
+    va_list ap;
+    va_start(ap, msg);
+    char buffer[max_size];
+    vsnprintf(buffer, max_size, msg, ap);
+    fprintf(stderr, "%s\n", buffer);
+    va_end(ap);
 }
 
 uid_t Privsep_GetUser(const char *name)
