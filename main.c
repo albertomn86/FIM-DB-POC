@@ -138,6 +138,13 @@ int main() {
         return 1;
     }
 
+    announce_function("fim_db_get_inode");
+    fim_entry_data *resp2 = fim_db_get_inode(12, 9812);
+    unsigned int j = 0;
+    while (resp2 && resp2[j++].path) {
+        print_fim_entry_data(resp2);
+    }
+
     announce_function("fim_db_delete_unscanned");
     if (fim_db_delete_unscanned()) {
         merror("Error in fim_db_delete_unscanned() function.");
