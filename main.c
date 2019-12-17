@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TEST_PATH "/home/user/test/file15"
+#define TEST_PATH_START "/home/user/test/file15"
+#define TEST_PATH_END "/home/user/test/file3"
 
 int get_all_callback(fim_entry_data *entry) {
     printf("Path: %s\n", entry->path);
@@ -92,7 +93,7 @@ int test_fim_db_update(fim_entry_data *resp) {
 
     // Confirm the change
     printf("Database content:\n");
-    fim_entry_data *updated_entry = fim_db_get_path(TEST_PATH);
+    fim_entry_data *updated_entry = fim_db_get_path(TEST_PATH_START);
     if (updated_entry) {
         print_fim_entry_data(updated_entry);
     }
@@ -114,8 +115,14 @@ int main() {
     }
 
     announce_function("fim_db_get_range");
-    if (fim_db_get_range("/home/user/test/file15", "/home/user/test/file3", get_all_callback)) { // Reemplazar por los paths de test. Estos son de mis pruebas ~~~~~~~~~~~~~~~~~~~~~~~
+    if (fim_db_get_range(TEST_PATH_START, TEST_PATH_END, get_all_callback)) {
         merror("Error in fim_db_get_range() function.");
+        return 1;
+    }
+
+    announce_function("fim_db_get_not_scanned");
+    if (fim_db_get_not_scanned(get_all_callback)) {
+        merror("Error in fim_db_get_not_scanned() function.");
         return 1;
     }
 
@@ -126,9 +133,13 @@ int main() {
     }
 
     announce_function("fim_db_get_path");
-    fim_entry_data *resp = fim_db_get_path(TEST_PATH);
+    fim_entry_data *resp = fim_db_get_path(TEST_PATH_START);
     unsigned int i = 0;
-    while (resp && resp[i++].path) {
+    if (!resp) {
+        merror("Error in fim_db_get_path() function.");
+        return 1;
+    }
+    while (resp[i++].path) {
         print_fim_entry_data(resp);
     }
 
@@ -141,7 +152,11 @@ int main() {
     announce_function("fim_db_get_inode");
     fim_entry_data *resp2 = fim_db_get_inode(12, 9812);
     unsigned int j = 0;
-    while (resp2 && resp2[j++].path) {
+    if (!resp2) {
+        merror("Error in fim_db_get_inode() function.");
+        return 1;
+    }
+    while (resp2[j++].path) {
         print_fim_entry_data(resp2);
     }
 

@@ -16,6 +16,7 @@ static sqlite3 *db;
 #define GET_INODE   "SELECT entry_path.*, entry_data.* FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.rowid = entry_path.inode_id"
 #define LAST_ROWID "SELECT last_insert_rowid()"
 #define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;"
+#define GET_NOT_SCANNED    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid WHERE scanned = 0 ORDER BY PATH ASC;"
 #define SET_ALL_UNSCANNED "UPDATE entry_path SET scanned = 0;"
 #define DELETE_UNSCANNED "DELETE FROM entry_path WHERE scanned = 0;"
 #define UPDATE_ENTRY_DATA    "UPDATE entry_data SET size = ?, perm = ?, attributes = ?, uid = ?, gid = ?, user_name = ?, group_name = ?, hash_md5 = ?, hash_sha1 = ?, hash_sha256 = ?, mtime = ? WHERE dev = ? AND inode = ?;"
@@ -23,6 +24,7 @@ static sqlite3 *db;
 
 static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
 static int fim_exec_simple_query(char *query);
+static int fim_db_process_entries(const char *query, const char * start, const char * end, int (*callback)(fim_entry_data *));
 
 int fim_db_clean(void) {
     if(w_is_file(FIM_DB_PATH)) {
@@ -284,41 +286,15 @@ int fim_db_set_not_scanned(void) {
 }
 
 int fim_db_get_all(int (*callback)(fim_entry_data *)) {
-    return fim_db_get_range(NULL, NULL, callback);
+    return fim_db_process_entries(GET_ALL_ENTRIES, NULL, NULL, callback);
 }
 
 int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_entry_data *)) {
-    sqlite3_stmt *stmt = NULL;
-    int result;
+    return fim_db_process_entries(GET_ALL_ENTRIES, start, end, callback);
+}
 
-    if (sqlite3_prepare_v2(db, GET_ALL_ENTRIES, -1, &stmt, NULL)  != SQLITE_OK) {
-        merror("SQL ERROR: %s", sqlite3_errmsg(db));
-        return DB_ERR;
-    }
-
-    char init_found = 0;
-    while (result = sqlite3_step(stmt), result == SQLITE_ROW) {
-        char *path = (char *)sqlite3_column_text(stmt, 0);
-        if (!path) {
-            continue;
-        }
-
-        if (!init_found && start && strcmp(start, path)) {
-            continue;
-        }
-        init_found = 1;
-
-        fim_entry_data *entry = fim_decode_full_row(stmt);
-        callback((void *) entry);
-
-        if (end && !strcmp(end, path)) {
-            result = SQLITE_DONE;
-            break;
-        }
-    }
-
-    sqlite3_finalize(stmt);
-    return result != SQLITE_DONE ? DB_ERR : 0;
+int fim_db_get_not_scanned(int (*callback)(fim_entry_data *)) {
+    return fim_db_process_entries(GET_NOT_SCANNED, NULL, NULL, callback);
 }
 
 fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt) {
@@ -411,6 +387,40 @@ int fim_db_update(const unsigned long int inode, const unsigned long int dev, fi
     }
 
 end:
+    sqlite3_finalize(stmt);
+    return result != SQLITE_DONE ? DB_ERR : 0;
+}
+
+int fim_db_process_entries(const char *query, const char * start, const char * end, int (*callback)(fim_entry_data *)) {
+    sqlite3_stmt *stmt = NULL;
+    int result;
+
+    if (sqlite3_prepare_v2(db, query, -1, &stmt, NULL)  != SQLITE_OK) {
+        merror("SQL ERROR: %s", sqlite3_errmsg(db));
+        return DB_ERR;
+    }
+
+    char init_found = 0;
+    while (result = sqlite3_step(stmt), result == SQLITE_ROW) {
+        char *path = (char *)sqlite3_column_text(stmt, 0);
+        if (!path) {
+            continue;
+        }
+
+        if (!init_found && start && strcmp(start, path)) {
+            continue;
+        }
+        init_found = 1;
+
+        fim_entry_data *entry = fim_decode_full_row(stmt);
+        callback((void *) entry);
+
+        if (end && !strcmp(end, path)) {
+            result = SQLITE_DONE;
+            break;
+        }
+    }
+
     sqlite3_finalize(stmt);
     return result != SQLITE_DONE ? DB_ERR : 0;
 }

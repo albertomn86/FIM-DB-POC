@@ -124,4 +124,4 @@ int fim_db_delete_unscanned(void);
  *
  * @param callback Callback function (fim_report_deleted).
  */
-int fim_db_get_not_scanned(int (*callback)(void));
+int fim_db_get_not_scanned(int (*callback)(fim_entry_data *));
