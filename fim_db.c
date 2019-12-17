@@ -35,11 +35,9 @@ int fim_db_clean(void) {
 
 
 int fim_db_init(void) {
-    /* ~~~~~~~~~ COMENTADO HASTA QUE TENGAMOS LA FUNCIÓN DE INSERCIÓN LISTA
     if(fim_db_clean() < 0) {
         return DB_ERR;
     }
-    */
 
     if (wdb_create_file(FIM_DB_PATH, schema_fim_sql) < 0) {
         return DB_ERR;

@@ -87,30 +87,35 @@ int print_fim_entry_data_full(fim_entry_data *entry) {
 
 int print_fim_entry_data(fim_entry_data *entry) {
 
-    printf("%s|", entry->path);
+    printf("%s|", entry->path ? entry->path : "" );
     printf("%i|", entry->size);
-    printf("%s|", entry->perm);
-    printf("%s|", entry->attributes);
-    printf("%s|", entry->uid);
-    printf("%s|", entry->gid);
-    printf("%s|", entry->user_name);
-    printf("%s|", entry->group_name);
+    printf("%s|", entry->perm ? entry->perm : "" );
+    printf("%s|", entry->attributes ? entry->attributes : "" );
+    printf("%s|", entry->uid ?  entry->uid : "" );
+    printf("%s|", entry->gid ?  entry->gid : "" );
+    printf("%s|", entry->user_name ? entry->user_name : "" );
+    printf("%s|", entry->group_name ? entry->group_name : "" );
     printf("%i|", entry->mtime);
     printf("%lu|", entry->inode);
-    printf("%s|", entry->hash_md5);
-    printf("%s|", entry->hash_sha1);
-    printf("%s|", entry->hash_sha256);
+    printf("%s|", entry->hash_md5 ? entry->hash_md5 : "" );
+    printf("%s|", entry->hash_sha1 ? entry->hash_sha1 : "" );
+    printf("%s|", entry->hash_sha256 ? entry->hash_sha256 : "" );
     printf("%i|", entry->mode);
     printf("%lu|", entry->last_event);
     printf("%i|", entry->entry_type);
     printf("%lu|", entry->dev);
     printf("%i|", entry->scanned);
-    printf("%i|", entry->options);
-    printf("%s\n", entry->checksum);
+    printf("%i|", entry->options );
+    printf("%s\n", entry->checksum ? entry->checksum : "" );
 
 }
 
-int test_fim_db_update(fim_entry_data *resp) {
+int test_fim_db_update() {
+    fim_entry_data *resp = fim_db_get_path(TEST_PATH_START);
+    if (!resp) {
+        return -1;
+    }
+
     // Modify the current content
     resp->size +=100;
     free(resp->perm);
@@ -206,7 +211,6 @@ int main() {
     }
     free_entry_data(data2);
 
-
     announce_function("fim_db_get_all");
     if (fim_db_get_all(get_all_callback)) {
         merror("Error in fim_db_get_all() function.");
@@ -216,12 +220,6 @@ int main() {
     announce_function("fim_db_get_range");
     if (fim_db_get_range(TEST_PATH_START, TEST_PATH_END, get_all_callback)) {
         merror("Error in fim_db_get_range() function.");
-        return 1;
-    }
-
-    announce_function("fim_db_get_not_scanned");
-    if (fim_db_get_not_scanned(get_all_callback)) {
-        merror("Error in fim_db_get_not_scanned() function.");
         return 1;
     }
 
@@ -244,8 +242,14 @@ int main() {
     }
 
     announce_function("fim_db_update");
-    if (test_fim_db_update(resp)) {
+    if (test_fim_db_update()) {
         merror("Error in fim_db_update() function.");
+        return 1;
+    }
+
+    announce_function("fim_db_get_not_scanned");
+    if (fim_db_get_not_scanned(get_all_callback)) {
+        merror("Error in fim_db_get_not_scanned() function.");
         return 1;
     }
 
