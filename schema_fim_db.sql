@@ -6,7 +6,7 @@
  * and/or modify it under the terms of GPLv2.
  */
 
-CREATE TABLE IF NOT EXISTS inode_path (
+CREATE TABLE IF NOT EXISTS entry_path (
     path TEXT PRIMARY KEY,
     inode_id INTEGER,
     mode INTEGER,
@@ -14,10 +14,10 @@ CREATE TABLE IF NOT EXISTS inode_path (
     entry_type INTEGER,
     scanned INTEGER,
     options INTEGER,
-    checksum TEXT
+    checksum TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS inode_data (
+CREATE TABLE IF NOT EXISTS entry_data (
     dev INTEGER,
     inode INTEGER,
     size INTEGER,
@@ -34,5 +34,4 @@ CREATE TABLE IF NOT EXISTS inode_data (
     PRIMARY KEY(dev, inode)
 );
 
-PRAGMA foreign_keys=ON;
 PRAGMA journal_mode=WAL;

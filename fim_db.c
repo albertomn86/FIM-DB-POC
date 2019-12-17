@@ -8,15 +8,15 @@ static pthread_mutex_t fim_db_mutex;
 
 static sqlite3 *db;
 
-#define INSERT_DATA "INSERT INTO inode_data (dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime) \
+#define INSERT_DATA "INSERT INTO entry_data (dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-#define INSERT_PATH "INSERT INTO inode_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) \
+#define INSERT_PATH "INSERT INTO entry_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) \
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
 #define GET_PATH    "SELECT dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime, path, path, inode_id, mode, last_event, entry_type, scanned, options, checksum \
-                    FROM inode_data INNER JOIN inode_path ON inode_path.inode_id = inode_data.rowid AND inode_path.path = ?"
+                    FROM inode_data INNER JOIN entry_path ON entry_path.inode_id = entry_data.rowid AND entry_path.path = ?"
 #define LAST_ROWID "SELECT last_insert_rowid()"
-#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM inode_data INNER JOIN inode_path ON inode_id = inode;"
-#define GET_ALL_ORDER_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM inode_data INNER JOIN inode_path ON inode_id = inode ORDER BY PATH ASC;"
+#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = inode;"
+#define GET_ALL_ORDER_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = inode ORDER BY PATH ASC;"
 
 static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
 
@@ -101,7 +101,7 @@ int fim_db_remove_path(const char * file_path) {
 
     sqlite3_stmt *stmt = NULL;
 
-    sqlite3_prepare_v2(db, "SELECT count(*), inode_id FROM inode_path WHERE path = ?", -1, &stmt, NULL);
+    sqlite3_prepare_v2(db, "SELECT count(*), inode_id FROM entry_path WHERE path = ?", -1, &stmt, NULL);
     sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
 
     if (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -113,7 +113,7 @@ int fim_db_remove_path(const char * file_path) {
         case 1:
             // The inode has only one entry, delete the entry data.
             sqlite3_finalize(stmt);
-            sqlite3_prepare_v2(db, "DELETE FROM inode_data WHERE rowid = ?", -1, &stmt, NULL);
+            sqlite3_prepare_v2(db, "DELETE FROM entry_data WHERE rowid = ?", -1, &stmt, NULL);
             sqlite3_bind_text(stmt, 1, sqlite3_column_text(stmt, 1), -1, NULL);
             if (sqlite3_step(stmt) != SQLITE_DONE) {
                 goto exit_err;
@@ -122,7 +122,7 @@ int fim_db_remove_path(const char * file_path) {
         default:
             // The inode has more entries, delete only this path.
             sqlite3_finalize(stmt);
-            sqlite3_prepare_v2(db, "DELETE FROM inode_path WHERE path = ?", -1, &stmt, NULL);
+            sqlite3_prepare_v2(db, "DELETE FROM entry_path WHERE path = ?", -1, &stmt, NULL);
             sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
             if (sqlite3_step(stmt) != SQLITE_DONE) {
                 goto exit_err;
@@ -141,7 +141,7 @@ int fim_db_remove_inode(const unsigned long int inode, const unsigned long int d
 
     sqlite3_stmt *stmt = NULL;
 
-    sqlite3_prepare_v2(db, "SELECT rowid FROM inode_data WHERE inode = ? AND dev = ?", -1, &stmt, NULL);
+    sqlite3_prepare_v2(db, "SELECT rowid FROM entry_data WHERE inode = ? AND dev = ?", -1, &stmt, NULL);
     sqlite3_bind_int(stmt, 1, inode);
     sqlite3_bind_int(stmt, 2, dev);
 
@@ -149,7 +149,7 @@ int fim_db_remove_inode(const unsigned long int inode, const unsigned long int d
         int row_id = sqlite3_column_int(stmt, 0);
         // Delete the entry data.
         sqlite3_finalize(stmt);
-        sqlite3_prepare_v2(db, "DELETE FROM inode_data WHERE rowid = ?", -1, &stmt, NULL);
+        sqlite3_prepare_v2(db, "DELETE FROM entry_data WHERE rowid = ?", -1, &stmt, NULL);
         sqlite3_bind_int(stmt, 1, row_id);
         if (sqlite3_step(stmt) != SQLITE_DONE) {
             goto exit_err;
@@ -157,7 +157,7 @@ int fim_db_remove_inode(const unsigned long int inode, const unsigned long int d
 
         // Delete all paths with this inode.
         sqlite3_finalize(stmt);
-        sqlite3_prepare_v2(db, "DELETE FROM inode_path WHERE inode_id = ?", -1, &stmt, NULL);
+        sqlite3_prepare_v2(db, "DELETE FROM entry_path WHERE inode_id = ?", -1, &stmt, NULL);
         sqlite3_bind_int(stmt, 1, row_id);
         if (sqlite3_step(stmt) != SQLITE_DONE) {
             goto exit_err;
@@ -177,7 +177,7 @@ fim_entry_data * fim_db_get_inode(const unsigned long int inode, const unsigned 
 
     sqlite3_stmt *stmt = NULL;
 
-    sqlite3_prepare_v2(db, "SELECT * FROM inode_data WHERE inode = ?", -1, &stmt, NULL);
+    sqlite3_prepare_v2(db, "SELECT * FROM entry_data WHERE inode = ?", -1, &stmt, NULL);
     sqlite3_bind_int(stmt, 1, inode);
 
     if (sqlite3_step(stmt) == SQLITE_ROW) { // Puede devolver varios!!
@@ -251,7 +251,7 @@ int fim_db_set_not_scanned(void) {
 
     sqlite3_stmt *stmt = NULL;
 
-    sqlite3_prepare_v2(db, "UPDATE inode_data SET scanned = 0", -1, &stmt, NULL);
+    sqlite3_prepare_v2(db, "UPDATE entry_data SET scanned = 0", -1, &stmt, NULL);
 
     int ret = -1;
     if (sqlite3_step(stmt) == SQLITE_DONE) {
