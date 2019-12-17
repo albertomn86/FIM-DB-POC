@@ -1,15 +1,18 @@
 #include "fim_db.h"
 #include <stdio.h>
+#include <stdlib.h>
+
+#define TEST_PATH "/home/user/test/file15"
 
 int get_all_callback(fim_entry_data *entry) {
-    mdebug1("Path: %s", entry->path);
+    printf("Path: %s\n", entry->path);
 
     // Entry estructor call
     return 0;
 }
 
 void announce_function(char *function) {
-    printf("***Testing %s***\n", function);
+    printf("\n***Testing %s***\n", function);
 }
 
 int print_fim_entry_data_full(fim_entry_data *entry) {
@@ -62,6 +65,39 @@ int print_fim_entry_data(fim_entry_data *entry) {
 
 }
 
+int test_fim_db_update(fim_entry_data *resp) {
+    // Modify the current content
+    resp->size +=100;
+    free(resp->perm);
+    os_strdup("!!!", resp->perm);
+    free(resp->hash_sha256);
+    os_strdup("new_sha256", resp->perm);
+    resp->scanned = 1;
+    free(resp->checksum);
+    os_strdup("====", resp->checksum);
+
+    // Declaration of intentions
+    printf("New attrs for '%s'\n" \
+            " - Size: %u\n" \
+            " - Perm: %s\n" \
+            " - Sha256: %s\n" \
+            " - Scanned: %u\n" \
+            " - Checksum: %s\n",
+            resp->path, resp->size, resp->perm, resp->hash_sha256, resp->scanned, resp->checksum);
+
+    // Update the database
+    if (fim_db_update(resp->inode, resp->dev, resp)) {
+        return DB_ERR;
+    }
+
+    // Confirm the change
+    printf("Database content:\n");
+    fim_entry_data *updated_entry = fim_db_get_path(TEST_PATH);
+    if (updated_entry) {
+        print_fim_entry_data(updated_entry);
+    }
+}
+
 int main() {
     announce_function("fim_db_init");
     if (fim_db_init() == DB_ERR) {
@@ -88,23 +124,27 @@ int main() {
         return 1;
     }
 
-    mdebug1("~~~~~~~~~ fim_db_get_path ~~~~~~~~~");
-
-    fim_entry_data *resp = fim_db_get_path("/home/user/test/file15");
+    announce_function("fim_db_get_path");
+    fim_entry_data *resp = fim_db_get_path(TEST_PATH);
     if (resp) {
         print_fim_entry_data(resp);
     } else {
         printf("Not found\n");
     }
 
+    announce_function("fim_db_update");
+    if (test_fim_db_update(resp)) {
+        merror("Error in fim_db_update() function.");
+        return 1;
+    }
+
+/*
     announce_function("fim_db_delete_unscanned");
     if (fim_db_delete_unscanned()) {
         merror("Error in fim_db_delete_unscanned() function.");
         return 1;
     }
-
-
-
+*/
 
     return 0;
 }

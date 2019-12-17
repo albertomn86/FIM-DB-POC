@@ -43,7 +43,7 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry);
  * @param device
  * @return 0 on success, DB_ERROR otherwise.
  */
-int fim_db_update(const char* file_path, fim_entry_data *entry);
+int fim_db_update(const unsigned long int inode, const unsigned long int dev, fim_entry_data *entry);
 
 
 /**

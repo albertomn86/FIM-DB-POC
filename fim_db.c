@@ -14,9 +14,11 @@ static sqlite3 *db;
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
 #define GET_PATH    "SELECT entry_path.*, entry_data.* FROM entry_path INNER JOIN entry_data ON path = ? AND entry_data.rowid = entry_path.inode_id"
 #define LAST_ROWID "SELECT last_insert_rowid()"
-#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;"
+#define GET_ALL_ENTRIES    "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;"
 #define SET_ALL_UNSCANNED "UPDATE entry_path SET scanned = 0;"
 #define DELETE_UNSCANNED "DELETE FROM entry_path WHERE scanned = 0;"
+#define UPDATE_ENTRY_DATA    "UPDATE entry_data SET size = ?, perm = ?, attributes = ?, uid = ?, gid = ?, user_name = ?, group_name = ?, hash_md5 = ?, hash_sha1 = ?, hash_sha256 = ?, mtime = ? WHERE dev = ? AND inode = ?;"
+#define UPDATE_ENTRY_PATH "UPDATE entry_path SET mode = ?, last_event = ?, entry_type = ?, scanned = ?, options = ?, checksum = ? WHERE inode_id = (SELECT rowid FROM entry_data WHERE dev = ? AND inode = ?);"
 
 static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
 static int fim_exec_simple_query(char *query);
@@ -318,16 +320,17 @@ fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt) {
     entry->scanned = (unsigned int)sqlite3_column_int(stmt, 5);
     entry->options = (unsigned int)sqlite3_column_int(stmt, 6);
     entry->dev = (unsigned int)sqlite3_column_int(stmt, 7);
-    entry->size = (unsigned int)sqlite3_column_int(stmt, 8);
-    w_strdup((char *)sqlite3_column_text(stmt, 9), entry->perm);
-    w_strdup((char *)sqlite3_column_text(stmt, 10), entry->attributes);
-    w_strdup((char *)sqlite3_column_text(stmt, 11), entry->uid);
-    w_strdup((char *)sqlite3_column_text(stmt, 12), entry->gid);
-    w_strdup((char *)sqlite3_column_text(stmt, 13), entry->user_name);
-    w_strdup((char *)sqlite3_column_text(stmt, 14), entry->group_name);
-    w_strdup((char *)sqlite3_column_text(stmt, 15), entry->hash_md5);
-    w_strdup((char *)sqlite3_column_text(stmt, 16), entry->hash_sha1);
-    w_strdup((char *)sqlite3_column_text(stmt, 17), entry->hash_sha256);
+    entry->inode = (unsigned int)sqlite3_column_int(stmt, 8);
+    entry->size = (unsigned int)sqlite3_column_int(stmt, 9);
+    w_strdup((char *)sqlite3_column_text(stmt, 10), entry->perm);
+    w_strdup((char *)sqlite3_column_text(stmt, 11), entry->attributes);
+    w_strdup((char *)sqlite3_column_text(stmt, 12), entry->uid);
+    w_strdup((char *)sqlite3_column_text(stmt, 13), entry->gid);
+    w_strdup((char *)sqlite3_column_text(stmt, 14), entry->user_name);
+    w_strdup((char *)sqlite3_column_text(stmt, 15), entry->group_name);
+    w_strdup((char *)sqlite3_column_text(stmt, 16), entry->hash_md5);
+    w_strdup((char *)sqlite3_column_text(stmt, 17), entry->hash_sha1);
+    w_strdup((char *)sqlite3_column_text(stmt, 18), entry->hash_sha256);
     entry->mtime = (unsigned int)sqlite3_column_int(stmt, 18);
 
     return entry;
@@ -350,4 +353,52 @@ int fim_exec_simple_query(char *query) {
         return DB_ERR;
     }
     return 0;
+}
+int fim_db_update(const unsigned long int inode, const unsigned long int dev, fim_entry_data *entry) {
+    sqlite3_stmt *stmt = NULL;
+    int result;
+
+    // Update entry_data
+    if (sqlite3_prepare_v2(db, UPDATE_ENTRY_DATA, -1, &stmt, NULL)  != SQLITE_OK) {
+        merror("SQL ERROR: %s", sqlite3_errmsg(db));
+        return DB_ERR;
+    }
+    sqlite3_bind_int(stmt, 1, entry->size);
+    sqlite3_bind_text(stmt, 2, entry->perm, -1, NULL);
+    sqlite3_bind_text(stmt, 3, entry->attributes, -1, NULL);
+    sqlite3_bind_text(stmt, 4, entry->uid, -1, NULL);
+    sqlite3_bind_text(stmt, 5, entry->gid, -1, NULL);
+    sqlite3_bind_text(stmt, 6, entry->user_name, -1, NULL);
+    sqlite3_bind_text(stmt, 7, entry->group_name, -1, NULL);
+    sqlite3_bind_text(stmt, 8, entry->hash_md5, -1, NULL);
+    sqlite3_bind_text(stmt, 9, entry->hash_sha1, -1, NULL);
+    sqlite3_bind_text(stmt, 10, entry->hash_sha256, -1, NULL);
+    sqlite3_bind_int(stmt, 11, entry->mtime);
+    sqlite3_bind_int(stmt, 12, entry->dev);
+    sqlite3_bind_int(stmt, 13, entry->inode);
+    if (result = sqlite3_step(stmt), result != SQLITE_DONE) {
+        merror("SQL ERROR: %s", sqlite3_errmsg(db));
+        goto end;
+    }
+
+    // Update entry_path
+    if (sqlite3_prepare_v2(db, UPDATE_ENTRY_PATH, -1, &stmt, NULL)  != SQLITE_OK) {
+        merror("SQL ERROR: %s", sqlite3_errmsg(db));
+        return DB_ERR;
+    }
+    sqlite3_bind_int(stmt, 1, entry->mode);
+    sqlite3_bind_int(stmt, 2, entry->last_event);
+    sqlite3_bind_int(stmt, 3, entry->entry_type);
+    sqlite3_bind_int(stmt, 4, entry->scanned);
+    sqlite3_bind_int(stmt, 5, entry->options);
+    sqlite3_bind_text(stmt, 6, entry->checksum, -1, NULL);
+    sqlite3_bind_int(stmt, 7, entry->dev);
+    sqlite3_bind_int(stmt, 8, entry->inode);
+    if (result = sqlite3_step(stmt), result != SQLITE_DONE) {
+        merror("SQL ERROR: %s", sqlite3_errmsg(db));
+    }
+
+end:
+    sqlite3_finalize(stmt);
+    return result != SQLITE_DONE ? DB_ERR : 0;
 }
