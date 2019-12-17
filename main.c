@@ -124,12 +124,12 @@ int main() {
         return 1;
     }
 
+
     announce_function("fim_db_get_path");
     fim_entry_data *resp = fim_db_get_path(TEST_PATH);
-    if (resp) {
+    unsigned int i = 0;
+    while (resp[i++].path) {
         print_fim_entry_data(resp);
-    } else {
-        printf("Not found\n");
     }
 
     announce_function("fim_db_update");

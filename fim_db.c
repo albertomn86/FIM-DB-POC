@@ -222,37 +222,40 @@ fim_entry_data * fim_db_get_path(const char * file_path) {
     sqlite3_prepare_v2(db, GET_PATH, -1, &stmt, NULL);
     sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
 
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
+    int result = 0;
+    unsigned int size = 0;
+    fim_entry_data *entry = NULL;
 
-        fim_entry_data *entry = calloc(1, sizeof(fim_entry_data));
+    while (result = sqlite3_step(stmt), result == SQLITE_ROW) {
 
-        w_strdup((char *)sqlite3_column_text(stmt, 0), entry->path);
-        entry->mode = (unsigned int)sqlite3_column_int(stmt, 2);
-        entry->last_event = (time_t)sqlite3_column_int(stmt, 3);
-        entry->entry_type = sqlite3_column_int(stmt, 4);
-        entry->scanned = (time_t)sqlite3_column_int(stmt, 5);
-        entry->options = (time_t)sqlite3_column_int(stmt, 6);
-        w_strdup((char *)sqlite3_column_text(stmt, 7), entry->checksum);
-        entry->dev = (unsigned long int)sqlite3_column_int(stmt, 8);
-        entry->inode = (unsigned long int)sqlite3_column_int(stmt, 9);
-        entry->size = (unsigned int)sqlite3_column_int(stmt, 10);
-        w_strdup((char *)sqlite3_column_text(stmt, 11), entry->perm);
-        w_strdup((char *)sqlite3_column_text(stmt, 12), entry->attributes);
-        w_strdup((char *)sqlite3_column_text(stmt, 13), entry->uid);
-        w_strdup((char *)sqlite3_column_text(stmt, 14), entry->gid);
-        w_strdup((char *)sqlite3_column_text(stmt, 15), entry->user_name);
-        w_strdup((char *)sqlite3_column_text(stmt, 16), entry->group_name);
-        w_strdup((char *)sqlite3_column_text(stmt, 17), entry->hash_md5);
-        w_strdup((char *)sqlite3_column_text(stmt, 18), entry->hash_sha1);
-        w_strdup((char *)sqlite3_column_text(stmt, 19), entry->hash_sha256);
-        entry->mtime = (unsigned int)sqlite3_column_int(stmt, 10);
+        entry = realloc(entry, (size + 2) * sizeof(fim_entry_data));
+        memset(&entry[size], 0, 2 * sizeof(fim_entry_data));
 
-        sqlite3_finalize(stmt);
-        return entry;
+        w_strdup((char *)sqlite3_column_text(stmt, 0), entry[size].path);
+        entry[size].mode = (unsigned int)sqlite3_column_int(stmt, 2);
+        entry[size].last_event = (time_t)sqlite3_column_int(stmt, 3);
+        entry[size].entry_type = sqlite3_column_int(stmt, 4);
+        entry[size].scanned = (time_t)sqlite3_column_int(stmt, 5);
+        entry[size].options = (time_t)sqlite3_column_int(stmt, 6);
+        w_strdup((char *)sqlite3_column_text(stmt, 7), entry[size].checksum);
+        entry[size].dev = (unsigned long int)sqlite3_column_int(stmt, 8);
+        entry[size].inode = (unsigned long int)sqlite3_column_int(stmt, 9);
+        entry[size].size = (unsigned int)sqlite3_column_int(stmt, 10);
+        w_strdup((char *)sqlite3_column_text(stmt, 11), entry[size].perm);
+        w_strdup((char *)sqlite3_column_text(stmt, 12), entry[size].attributes);
+        w_strdup((char *)sqlite3_column_text(stmt, 13), entry[size].uid);
+        w_strdup((char *)sqlite3_column_text(stmt, 14), entry[size].gid);
+        w_strdup((char *)sqlite3_column_text(stmt, 15), entry[size].user_name);
+        w_strdup((char *)sqlite3_column_text(stmt, 16), entry[size].group_name);
+        w_strdup((char *)sqlite3_column_text(stmt, 17), entry[size].hash_md5);
+        w_strdup((char *)sqlite3_column_text(stmt, 18), entry[size].hash_sha1);
+        w_strdup((char *)sqlite3_column_text(stmt, 19), entry[size].hash_sha256);
+        entry[size].mtime = (unsigned int)sqlite3_column_int(stmt, 10);
+
+        size++;
     }
-    printf("NO ROW\n");
     sqlite3_finalize(stmt);
-    return NULL;
+    return entry;
 }
 
 
