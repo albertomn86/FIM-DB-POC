@@ -68,7 +68,6 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
     if (!stmt) {
         goto end;
     }
-    int err = 0;
 
     sqlite3_bind_int(stmt, 1, entry->dev);
     sqlite3_bind_int(stmt, 2, entry->inode);
@@ -106,8 +105,7 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
             sqlite3_bind_int(stmt, 7, entry->options);
             sqlite3_bind_text(stmt, 8, entry->checksum, -1, NULL);
 
-            if (sqlite3_step(stmt) == SQLITE_DONE) {
-                err = 0;
+            if (sqlite3_step(stmt) != SQLITE_DONE) {
                 goto end;
             }
         }
@@ -133,19 +131,16 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
         sqlite3_bind_int(stmt, 13, entry->inode);
         if (sqlite3_step(stmt) != SQLITE_DONE) {
             merror("SQL ERROR: %s", sqlite3_errmsg(fim_db.db));
-            err = -1;
             goto end;
         }
 
         // Add to entry_path
         // Get ID
-        wdb_finalize(stmt);
         sqlite3_prepare_v2(fim_db.db, SQL_STMT[FIMDB_STMT_GET_DATA_ROW], -1, &stmt, 0);
         sqlite3_bind_int(stmt, 1, entry->dev);
         sqlite3_bind_int(stmt, 2, entry->inode);
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             int row_id = sqlite3_column_int(stmt, 0);
-            wdb_finalize(stmt);
             // Insert in inode_path
             sqlite3_prepare_v2(fim_db.db, SQL_STMT[FIMDB_STMT_INSERT_PATH], -1, &stmt, 0);
 
@@ -160,7 +155,6 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
 
             if (sqlite3_step(stmt) != SQLITE_DONE) {
                 merror("SQL ERROR: %s", sqlite3_errmsg(fim_db.db));
-                err = -1;
                 goto end;
             }
         }
@@ -553,9 +547,9 @@ sqlite3_stmt *fim_db_cache(fdb_stmt index) {
 
         if (sqlite3_prepare_v2(fim_db.db, SQL_STMT[index], -1, &fim_db.stmt[index], NULL) != SQLITE_OK) {
             merror("Error in fim_db_cache(): %s", sqlite3_errmsg(fim_db.db));
-        } else {
-            stmt = fim_db.stmt[index];
         }
+    }  else {
+        stmt = fim_db.stmt[index];
     }
 
     return stmt;
