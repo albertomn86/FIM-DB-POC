@@ -16,12 +16,17 @@ typedef enum fdb_stmt {
     WDB_STMT_SIZE
 } fdb_stmt;
 
+typedef struct transaction_t {
+    time_t last_commit;
+    time_t interval;
+    pthread_mutex_t mutex;
+} transaction_t;
+
 typedef struct fdb_t {
     sqlite3 * db;
     sqlite3_stmt * stmt[WDB_STMT_SIZE];
-    time_t last_commit;
-    time_t transaction_interval;
     pthread_rwlock_t mutex;
+    transaction_t transaction;
 } fdb_t;
 
 /**
@@ -139,3 +144,10 @@ int fim_db_delete_unscanned(void);
  * @param callback Callback function (fim_report_deleted).
  */
 int fim_db_get_not_scanned(int (*callback)(fim_entry_data *));
+
+/**
+ * @brief Perform the transaction if required.
+ * It must not be called from a critical section.
+ *
+ */
+void fim_check_transaction();

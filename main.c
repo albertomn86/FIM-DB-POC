@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TEST_PATH_START "/home/user/test/file15"
-#define TEST_PATH_END "/home/user/test/file3"
+#define TEST_PATH_START "/home/user/test/file2"
+#define TEST_PATH_END "/home/user/test/file4"
 
 int get_all_callback(fim_entry_data *entry) {
     printf("Path: %s\n", entry->path);

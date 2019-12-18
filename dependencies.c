@@ -108,7 +108,26 @@ void mdebug1(const char *msg, ...) {
         va_start(ap, msg);
         char buffer[max_size];
         vsnprintf(buffer, max_size, msg, ap);
-        fprintf(stdout, "%s\n", buffer);
+        time_t t = time(NULL);
+        struct tm *tm_info = localtime(&t);
+        char timestamp[26];
+        strftime(timestamp, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+        fprintf(stdout, "%s %s\n", timestamp, buffer);
+        va_end(ap);
+    }
+}
+
+void mdebug2(const char *msg, ...) {
+    if (debug_level >= 2) {
+        va_list ap;
+        va_start(ap, msg);
+        char buffer[max_size];
+        vsnprintf(buffer, max_size, msg, ap);
+        time_t t = time(NULL);
+        struct tm *tm_info = localtime(&t);
+        char timestamp[26];
+        strftime(timestamp, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+        fprintf(stdout, "%s %s\n", timestamp, buffer);
         va_end(ap);
     }
 }
@@ -118,7 +137,11 @@ void merror(const char *msg, ...) {
     va_start(ap, msg);
     char buffer[max_size];
     vsnprintf(buffer, max_size, msg, ap);
-    fprintf(stderr, "%s\n", buffer);
+    time_t t = time(NULL);
+    struct tm *tm_info = localtime(&t);
+    char timestamp[26];
+    strftime(timestamp, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+    fprintf(stdout, "%s %s\n", timestamp, buffer);
     va_end(ap);
 }
 

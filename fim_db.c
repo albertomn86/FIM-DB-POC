@@ -33,7 +33,9 @@ int fim_db_clean(void) {
 
 int fim_db_init(void) {
     memset(&fim_db, 0, sizeof(fdb_t));
+    fim_db.transaction.interval = COMMIT_INTERVAL;
     w_rwlock_init(&fim_db.mutex, NULL);
+    w_mutex_init(&fim_db.transaction.mutex, NULL);
 
     if(fim_db_clean() < 0) {
         return DB_ERR;
@@ -44,6 +46,10 @@ int fim_db_init(void) {
     }
 
     if (sqlite3_open_v2(FIM_DB_PATH, &fim_db.db, SQLITE_OPEN_READWRITE, NULL)) { // ~~~~~~~~~~ FOR TESTING PURPOSES
+        return DB_ERR;
+    }
+
+    if (fim_exec_simple_wquery("BEGIN;") == DB_ERR) {
         return DB_ERR;
     }
 
@@ -70,7 +76,7 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
     sqlite3_bind_text(stmt, 11, entry->hash_sha1, -1, NULL);
     sqlite3_bind_text(stmt, 12, entry->hash_sha256, -1, NULL);
     sqlite3_bind_int(stmt, 13, entry->mtime);
-    // LOCK MUTEX
+
     if (sqlite3_step(stmt) == SQLITE_DONE) {
         wdb_finalize(stmt);
         // Get ID
@@ -93,12 +99,14 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
             if (sqlite3_step(stmt) == SQLITE_DONE) {
                 wdb_finalize(stmt);
                 w_rwlock_unlock(&fim_db.mutex);
+                fim_check_transaction();
                 return 0;
             }
         }
     }
     wdb_finalize(stmt);
     w_rwlock_unlock(&fim_db.mutex);
+    fim_check_transaction();
     return DB_ERR;
 }
 
@@ -178,6 +186,7 @@ int fim_db_remove_inode(const unsigned long int inode, const unsigned long int d
 end:
     wdb_finalize(stmt);
     w_rwlock_unlock(&fim_db.mutex);
+    fim_check_transaction();
     return retval;
 }
 
@@ -226,6 +235,7 @@ fim_entry_data * fim_db_get_inode(const unsigned long int inode, const unsigned 
 
     wdb_finalize(stmt);
     w_rwlock_unlock(&fim_db.mutex);
+    fim_check_transaction();
     return entry;
 }
 
@@ -274,6 +284,7 @@ fim_entry_data * fim_db_get_path(const char * file_path) {
 end:
     wdb_finalize(stmt);
     w_rwlock_unlock(&fim_db.mutex);
+    fim_check_transaction();
     return entry;
 }
 
@@ -291,6 +302,7 @@ int fim_db_set_not_scanned(void) {
 
     wdb_finalize(stmt);
     w_rwlock_unlock(&fim_db.mutex);
+    fim_check_transaction();
     return ret;
 }
 
@@ -332,15 +344,20 @@ fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt) {
     entry->mtime = (unsigned int)sqlite3_column_int(stmt, 18);
 
     w_rwlock_unlock(&fim_db.mutex);
+    fim_check_transaction();
     return entry;
 }
 
 int fim_db_set_all_unscanned(void) {
-    return fim_exec_simple_wquery(SET_ALL_UNSCANNED);
+    int retval = fim_exec_simple_wquery(SET_ALL_UNSCANNED);
+    fim_check_transaction();
+    return retval;
 }
 
 int fim_db_delete_unscanned(void) {
-    return fim_exec_simple_wquery(DELETE_UNSCANNED);
+    int retval = fim_exec_simple_wquery(DELETE_UNSCANNED);
+    fim_check_transaction();
+    return retval;
 }
 
 int fim_exec_simple_wquery(char *query) {
@@ -415,6 +432,8 @@ end:
 }
 
 int fim_db_process_get_query(const char *query, const char * start, const char * end, int (*callback)(fim_entry_data *)) {
+    w_rwlock_rdlock(&fim_db.mutex);
+
     sqlite3_stmt *stmt = NULL;
     int result;
 
@@ -445,5 +464,21 @@ int fim_db_process_get_query(const char *query, const char * start, const char *
     }
 
     wdb_finalize(stmt);
+    w_rwlock_unlock(&fim_db.mutex);
+    fim_check_transaction();
     return result != SQLITE_DONE ? DB_ERR : 0;
+}
+
+void fim_check_transaction() {
+    w_mutex_lock(&fim_db.transaction.mutex);
+    time_t now = time(NULL);
+    if (fim_db.transaction.last_commit + fim_db.transaction.interval <= now) {
+        // If the completion of the transaction fails, we do not update the timestamp
+        if (fim_exec_simple_wquery("END;") != DB_ERR) {
+            mdebug1("Database transaction completed.");
+            fim_db.transaction.last_commit = now;
+            while (fim_exec_simple_wquery("BEGIN;") == DB_ERR);
+        }
+    }
+    w_mutex_unlock(&fim_db.transaction.mutex);
 }

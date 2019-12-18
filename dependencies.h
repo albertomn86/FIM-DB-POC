@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define debug_level 0
+#define debug_level 1
 #define max_size 20000
 typedef struct fim_entry_data {
     char *path; // Duda ~~~~~~
@@ -35,6 +35,7 @@ typedef struct fim_entry_data {
 int w_is_file(const char * const file);
 int wdb_create_file(const char *path, const char *source);
 void mdebug1(const char *msg, ...);
+void mdebug2(const char *msg, ...);
 void merror(const char *msg, ...);
 uid_t Privsep_GetUser(const char *name) __attribute__((nonnull));
 gid_t Privsep_GetGroup(const char *name) __attribute__((nonnull));
@@ -48,3 +49,6 @@ void free_entry_data(fim_entry_data * data);
 #define w_rwlock_rdlock(x) { int error = pthread_rwlock_rdlock(x); if (error) exit(1); }
 #define w_rwlock_wrlock(x) { int error = pthread_rwlock_wrlock(x); if (error) exit(1); }
 #define w_rwlock_unlock(x) { int error = pthread_rwlock_unlock(x); if (error) exit(1); }
+#define w_mutex_init(x, y) { int error = pthread_mutex_init(x, y); if (error) exit(1); }
+#define w_mutex_lock(x) { int error = pthread_mutex_lock(x); if (error) exit(1); }
+#define w_mutex_unlock(x) { int error = pthread_mutex_unlock(x); if (error) exit(1); }
