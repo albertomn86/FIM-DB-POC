@@ -38,6 +38,7 @@ typedef struct transaction_t {
 
 typedef struct fdb_t {
     sqlite3 * db;
+    sqlite3_stmt *stmt[WDB_STMT_SIZE];
     transaction_t transaction;
 } fdb_t;
 
@@ -163,3 +164,11 @@ int fim_db_get_not_scanned(int (*callback)(fim_entry_data *));
  *
  */
 void fim_check_transaction();
+
+/**
+ * @brief Returm the statement associated with the query.
+ *
+ * @param A query index.
+ * @return An statement on success, NULL otherwise.
+ */
+sqlite3_stmt *fim_db_cache(fdb_stmt index);
