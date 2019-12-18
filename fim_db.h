@@ -10,22 +10,34 @@ extern const char *schema_fim_sql;
 const char * fim_db_err_to_str(int err);
 
 typedef enum fdb_stmt {
-    FIMDB_STMT_QUERY1,
-    FIMDB_STMT_QUERY2,
-    FIMDB_STMT_QUERY3,
+    FIMDB_STMT_INSERT_DATA,
+    FIMDB_STMT_INSERT_PATH,
+    FIMDB_STMT_GET_PATH,
+    FIMDB_STMT_GET_INODE,
+    FIMDB_STMT_GET_LAST_ROWID,
+    FIMDB_STMT_GET_ALL_ENTRIES,
+    FIMDB_STMT_GET_NOT_SCANNED,
+    FIMDB_STMT_SET_ALL_UNSCANNED,
+    FIMDB_STMT_DELETE_UNSCANNED,
+    FIMDB_STMT_UPDATE_ENTRY_DATA,
+    FIMDB_STMT_UPDATE_ENTRY_PATH,
+    FIMDB_STMT_GET_PATH_COUNT,
+    FIMDB_STMT_DELETE_DATA_ID,
+    FIMDB_STMT_DELETE_PATH,
+    FIMDB_STMT_GET_DATA_ROW,
+    FIMDB_STMT_DELETE_DATA_ROW,
+    FIMDB_STMT_DELETE_PATH_INODE,
+    FIMDB_STMT_DISABLE_SCANNED,
     WDB_STMT_SIZE
 } fdb_stmt;
 
 typedef struct transaction_t {
     time_t last_commit;
     time_t interval;
-    pthread_mutex_t mutex;
 } transaction_t;
 
 typedef struct fdb_t {
     sqlite3 * db;
-    sqlite3_stmt * stmt[WDB_STMT_SIZE];
-    pthread_rwlock_t mutex;
     transaction_t transaction;
 } fdb_t;
 
