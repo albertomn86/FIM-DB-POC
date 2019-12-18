@@ -43,3 +43,8 @@ gid_t Privsep_GetGroup(const char *name) __attribute__((nonnull));
 #define w_strdup(x,y) ({ int retstr = 0; if (x) { os_strdup(x, y);} else retstr = 1; retstr;})
 #define os_free(x) if(x){free(x);x=NULL;}
 void free_entry_data(fim_entry_data * data);
+#define wdb_finalize(x) { if (x) { sqlite3_finalize(x); x = NULL; } }
+#define w_rwlock_init(x, y) { int error = pthread_rwlock_init(x, y); if (error) exit(1); }
+#define w_rwlock_rdlock(x) { int error = pthread_rwlock_rdlock(x); if (error) exit(1); }
+#define w_rwlock_wrlock(x) { int error = pthread_rwlock_wrlock(x); if (error) exit(1); }
+#define w_rwlock_unlock(x) { int error = pthread_rwlock_unlock(x); if (error) exit(1); }

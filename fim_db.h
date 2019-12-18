@@ -1,6 +1,6 @@
 #include "dependencies.h"
-
-
+#include <sqlite3.h>
+#include <pthread.h>
 #define FIM_DB_PATH "fim.db"
 
 #define DB_ERR -1
@@ -9,6 +9,20 @@ extern const char *schema_fim_sql;
 
 const char * fim_db_err_to_str(int err);
 
+typedef enum fdb_stmt {
+    FIMDB_STMT_QUERY1,
+    FIMDB_STMT_QUERY2,
+    FIMDB_STMT_QUERY3,
+    WDB_STMT_SIZE
+} fdb_stmt;
+
+typedef struct fdb_t {
+    sqlite3 * db;
+    sqlite3_stmt * stmt[WDB_STMT_SIZE];
+    time_t last_commit;
+    time_t transaction_interval;
+    pthread_rwlock_t mutex;
+} fdb_t;
 
 /**
  * @brief Initialize FIM databases.

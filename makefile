@@ -2,7 +2,7 @@
 EXEC=fim_db
 SCHEMA=schema.o
 
-$(EXEC): main.c $(EXEC).o sqlite3.o $(SCHEMA) dependencies.o
+$(EXEC): main.o $(EXEC).o sqlite3.o $(SCHEMA) dependencies.o
 	@gcc -o $(EXEC) $^ -pthread -ldl -g
 
 %.o: %.c
