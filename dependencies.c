@@ -25,14 +25,14 @@ int wdb_create_file(const char *path, const char *source) {
     gid_t gid;
 
     if (sqlite3_open_v2(path, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL)) {
-        mdebug1("Couldn't create SQLite database '%s': %s", path, sqlite3_errmsg(db));
+        printf("Couldn't create SQLite database '%s': %s", path, sqlite3_errmsg(db));
         sqlite3_close_v2(db);
         return -1;
     }
 
     for (sql = source; sql && *sql; sql = tail) {
         if (sqlite3_prepare_v2(db, sql, -1, &stmt, &tail) != SQLITE_OK) {
-            mdebug1("Preparing statement: %s", sqlite3_errmsg(db));
+            printf("Preparing statement: %s", sqlite3_errmsg(db));
             sqlite3_close_v2(db);
             return -1;
         }
@@ -45,7 +45,7 @@ int wdb_create_file(const char *path, const char *source) {
         case SQLITE_DONE:
             break;
         default:
-            mdebug1("Stepping statement: %s", sqlite3_errmsg(db));
+            printf("Stepping statement: %s", sqlite3_errmsg(db));
             sqlite3_finalize(stmt);
             sqlite3_close_v2(db);
             return -1;
@@ -58,7 +58,7 @@ int wdb_create_file(const char *path, const char *source) {
 
     switch (getuid()) {
     case -1:
-        merror("getuid(): %s (%d)", strerror(errno), errno);
+        printf("getuid(): %s (%d)", strerror(errno), errno);
         return -1;
 
     case 0:
@@ -66,24 +66,24 @@ int wdb_create_file(const char *path, const char *source) {
         gid = Privsep_GetGroup(GROUPGLOBAL);
 
         if (uid == (uid_t) - 1 || gid == (gid_t) - 1) {
-            merror("USER_ERROR", ROOT, GROUPGLOBAL);
+            printf("USER_ERROR");
             return -1;
         }
 
         if (chown(path, uid, gid) < 0) {
-            merror("CHOWN_ERROR", path, errno, strerror(errno));
+            printf("CHOWN_ERROR");
             return -1;
         }
 
         break;
 
     default:
-        mdebug1("Ignoring chown when creating file from SQL.");
+        printf("Ignoring chown when creating file from SQL.");
         break;
     }
 
     if (chmod(path, 0660) < 0) {
-        merror("CHMOD_ERROR", path, errno, strerror(errno));
+        printf("CHMOD_ERROR");
         return -1;
     }
 

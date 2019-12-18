@@ -7,7 +7,7 @@
  */
 
 CREATE TABLE IF NOT EXISTS entry_path (
-    path TEXT,
+    path TEXT NOT NULL,
     inode_id INTEGER,
     mode INTEGER,
     last_event INTEGER,
@@ -31,8 +31,9 @@ CREATE TABLE IF NOT EXISTS entry_data (
     hash_md5 TEXT,
     hash_sha1 TEXT,
     hash_sha256 TEXT,
-    mtime INTEGER,
-    PRIMARY KEY(dev, inode)
+    mtime INTEGER
 );
+
+CREATE UNIQUE INDEX data_index ON entry_data(dev, inode);
 
 PRAGMA journal_mode=WAL;

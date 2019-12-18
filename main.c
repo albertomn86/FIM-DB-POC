@@ -150,6 +150,56 @@ int test_fim_db_update() {
     return 0;
 }
 
+int fill_entries() {
+
+    FILE *fp;
+
+    fp = fopen("sample_entries.txt", "r"); // read mode
+
+    if (fp == NULL)
+    {
+        merror("Error while opening the file.\n");
+        return -1;
+    }
+
+    char path[512];
+    unsigned int size;
+    char perm[128];
+    char attributes[128];
+    char uid[5];
+    char gid[5];
+    char user_name[64];
+    char group_name[64];
+    unsigned int mtime;
+    unsigned long int inode;
+    char hash_md5[33];
+    char hash_sha1[41];
+    char hash_sha256[64];
+    int mode;
+    time_t last_event;
+    int entry_type;
+    unsigned long int dev;
+    unsigned int scanned;
+    int options;
+    char checksum[33];
+
+    char line[2048];
+
+    while(fgets(line, 2048, fp)) {
+        sscanf(line, "%s %u %s %s %s %s %s %s %u %ld %s %s %s %i %lu %i %ld %u %i %s",\
+            path, &size, perm, attributes, uid, gid, user_name, group_name, &mtime, &inode, hash_md5, hash_sha1, hash_sha256, &mode, &last_event, &entry_type, &dev, &scanned, &options, checksum);
+        fim_entry_data *data = fill_entry_struct(size, perm, attributes, uid, gid, user_name, group_name, mtime, inode, hash_md5, hash_sha1, hash_sha256, mode, last_event, entry_type, dev, scanned, options, checksum);
+        print_fim_entry_data(data);
+        if (fim_db_insert(path, data)) {
+            printf("Error in fim_db_insert() function. PATH: %s", path);
+        }
+        free_entry_data(data);
+    }
+
+    fclose(fp);
+    return 0;
+}
+
 int main() {
     announce_function("fim_db_init");
     if (fim_db_init() == DB_ERR) {
@@ -158,58 +208,9 @@ int main() {
     }
 
     announce_function("fim_db_insert");
-    fim_entry_data *data1 = fill_entry_struct(
-        1500,
-        "0664",
-        "r--r--r--",
-        "100",
-        "1000",
-        "test",
-        "testing",
-        1570184223,
-        606060,
-        "3691689a513ace7e508297b583d7050d",
-        "07f05add1049244e7e71ad0f54f24d8094cd8f8b",
-        "672a8ceaea40a441f0268ca9bbb33e99f9643c6262667b61fbe57694df224d40",
-        2,
-        1570184220,
-        1,
-        12345678,
-        123456,
-        511,
-        "07f05add1049244e7e71ad0f54f24d8094cd8f8b"
-    );
-
-    fim_entry_data *data2 = fill_entry_struct(
-        1500,
-        "0664",
-        "r--r--r--",
-        "100",
-        "1000",
-        "test",
-        "testing",
-        1570184223,
-        606060,
-        "3691689a513ace7e508297b583d7050d",
-        "07f05add1049244e7e71ad0f54f24d8094cd8f8b",
-        "672a8ceaea40a441f0268ca9bbb33e99f9643c6262667b61fbe57694df224d40",
-        1,
-        1570184220,
-        0,
-        12345,
-        123456,
-        511,
-        "07f05add1049244e7e71ad0f54f24d8094cd8f8b"
-    );
-
-    if (fim_db_insert("/home/user/test/file21", data1)) {
-        merror("Error in fim_db_insert() function.");
+    if (fill_entries()) {
+        merror("Error in fill_entries() function.");
     }
-    free_entry_data(data1);
-    if (fim_db_insert("/home/user/test/file22", data2)) {
-        merror("Error in fim_db_insert() function.");
-    }
-    free_entry_data(data2);
 
     announce_function("fim_db_get_all");
     if (fim_db_get_all(get_all_callback)) {
