@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TEST_PATH_START "/home/user/test/file2"
+#define TEST_PATH_START "/home/user/test/file1"
 #define TEST_PATH_END "/home/user/test/file4"
 
 int get_all_callback(fim_entry_data *entry) {
@@ -144,7 +144,7 @@ int test_fim_db_update() {
     printf("Database content:\n");
     fim_entry_data *updated_entry = fim_db_get_path(TEST_PATH_START);
     if (updated_entry) {
-        print_fim_entry_data(updated_entry);
+        print_fim_entry_data_full(updated_entry);
     }
 
     return 0;
@@ -255,7 +255,7 @@ int main() {
     }
 
     announce_function("fim_db_get_inode");
-    fim_entry_data *resp2 = fim_db_get_inode(9812, 12);
+    fim_entry_data *resp2 = fim_db_get_inode(6121, 2);
     unsigned int j = 0;
     if (!resp2) {
         merror("Error in fim_db_get_inode() function.");

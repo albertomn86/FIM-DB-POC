@@ -8,8 +8,8 @@ static fdb_t fim_db;
 static const char *SQL_STMT[] = {
     [FIMDB_STMT_INSERT_DATA] = "INSERT INTO entry_data (dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [FIMDB_STMT_INSERT_PATH] = "INSERT INTO entry_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-    [FIMDB_STMT_GET_PATH] = "SELECT entry_path.*, entry_data.* FROM entry_path INNER JOIN entry_data ON path = ? AND entry_data.rowid = entry_path.inode_id",
-    [FIMDB_STMT_GET_INODE] = "SELECT entry_path.*, entry_data.* FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.rowid = entry_path.inode_id",
+    [FIMDB_STMT_GET_PATH] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON path = ? AND entry_data.rowid = entry_path.inode_id",
+    [FIMDB_STMT_GET_INODE] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.rowid = entry_path.inode_id",
     [FIMDB_STMT_GET_LAST_ROWID] = "SELECT last_insert_rowid()",
     [FIMDB_STMT_GET_ALL_ENTRIES] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;",
     [FIMDB_STMT_GET_NOT_SCANNED] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid WHERE scanned = 0 ORDER BY PATH ASC;",
