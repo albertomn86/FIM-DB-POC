@@ -121,7 +121,7 @@ int test_fim_db_update() {
     free(resp->perm);
     os_strdup("!!!", resp->perm);
     free(resp->hash_sha256);
-    os_strdup("new_sha256", resp->perm);
+    os_strdup("new_sha256", resp->hash_sha256);
     resp->scanned = 1;
     free(resp->checksum);
     os_strdup("====", resp->checksum);
