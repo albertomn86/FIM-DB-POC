@@ -111,9 +111,11 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
 }
 
 
-int fim_db_remove_path(const char * file_path) { // ~~~~~~~~~~~~~~~~~~~ PENDING UNLOCKS
+int fim_db_remove_path(const char * file_path) {
     w_rwlock_wrlock(&fim_db.mutex);
+
     sqlite3_stmt *stmt = NULL;
+    int retval = DB_ERR;
 
     sqlite3_prepare_v2(fim_db.db, "SELECT count(*), inode_id FROM entry_path WHERE path = ?", -1, &stmt, NULL);
     sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
@@ -123,14 +125,14 @@ int fim_db_remove_path(const char * file_path) { // ~~~~~~~~~~~~~~~~~~~ PENDING 
         switch (rows) {
         case 0:
             // No entries with this path.
-            goto exit_err;
+            break;
         case 1:
             // The inode has only one entry, delete the entry data.
             wdb_finalize(stmt);
             sqlite3_prepare_v2(fim_db.db, "DELETE FROM entry_data WHERE rowid = ?", -1, &stmt, NULL);
             sqlite3_bind_text(stmt, 1, sqlite3_column_text(stmt, 1), -1, NULL);
             if (sqlite3_step(stmt) != SQLITE_DONE) {
-                goto exit_err;
+                goto end;
             }
             // Fallthrough
         default:
@@ -139,15 +141,18 @@ int fim_db_remove_path(const char * file_path) { // ~~~~~~~~~~~~~~~~~~~ PENDING 
             sqlite3_prepare_v2(fim_db.db, "DELETE FROM entry_path WHERE path = ?", -1, &stmt, NULL);
             sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
             if (sqlite3_step(stmt) != SQLITE_DONE) {
-                goto exit_err;
+                goto end;
             }
             break;
         }
     }
 
-exit_err:
+    retval = 0;
+end:
     wdb_finalize(stmt);
-    return DB_ERR;
+    w_rwlock_unlock(&fim_db.mutex);
+    fim_check_transaction();
+    return retval;
 }
 
 
