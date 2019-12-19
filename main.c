@@ -169,16 +169,16 @@ int fill_entries_random(unsigned int num_entries) {
         snprintf(path, 512, "%s%i", DEF_PATH, i);
         if (fim_db_insert(path, data)) {
             printf("Error in fim_db_insert() function.");
+            return DB_ERR;
         }
         free_entry_data(data);
         free(path);
     }
 
+    return 0;
 }
 
-
-int fill_entries() {
-
+int process_sample_entries(int (*callback)(const char *path, fim_entry_data *data)) {
     FILE *fp;
 
     fp = fopen("sample_entries.txt", "r"); // read mode
@@ -217,8 +217,9 @@ int fill_entries() {
             path, &size, perm, attributes, uid, gid, user_name, group_name, &mtime, &inode, hash_md5, hash_sha1, hash_sha256, &mode, &last_event, &entry_type, &dev, &scanned, &options, checksum);
         fim_entry_data *data = fill_entry_struct(size, perm, attributes, uid, gid, user_name, group_name, mtime, inode, hash_md5, hash_sha1, hash_sha256, mode, last_event, entry_type, dev, scanned, options, checksum);
         print_fim_entry_data(data);
-        if (fim_db_insert(path, data)) {
-            printf("Error in fim_db_insert() function. PATH: %s", path);
+        if (callback(path, data)) {
+            printf("Error in process_sample_entries() function. PATH: %s", path);
+            return DB_ERR;
         }
         free_entry_data(data);
     }
@@ -227,11 +228,43 @@ int fill_entries() {
     return 0;
 }
 
-int test_fim_insert() {
-    if (fill_entries()) {
+int fim_verify_sample_entries(const char *file_path, fim_entry_data *entry) {
+   fim_entry_data *saved_file = fim_db_get_unique_file(file_path, entry->inode, entry->dev);
+
+    if (!saved_file ||
+        entry->size != saved_file->size ||
+        entry->mtime != saved_file->mtime ||
+        entry->inode != saved_file->inode ||
+        entry->mode != saved_file->mode ||
+        entry->last_event != saved_file->last_event ||
+        entry->entry_type != saved_file->entry_type ||
+        entry->dev != saved_file->dev ||
+        entry->scanned != saved_file->scanned ||
+        entry->options != saved_file->options ||
+        strcmp(entry->perm, saved_file->perm) ||
+        strcmp(entry->attributes, saved_file->attributes) ||
+        strcmp(entry->uid, saved_file->uid) ||
+        strcmp(entry->gid, saved_file->gid) ||
+        strcmp(entry->user_name, saved_file->user_name) ||
+        strcmp(entry->group_name, saved_file->group_name) ||
+        strcmp(entry->hash_md5, saved_file->hash_md5) ||
+        strcmp(entry->hash_sha1, saved_file->hash_sha1) ||
+        strcmp(entry->hash_sha256, saved_file->hash_sha256) ||
+        strcmp(entry->checksum, saved_file->checksum)) {
         return DB_ERR;
     }
 
+    return 0;
+}
+
+int test_fim_insert() {
+    if (process_sample_entries(fim_db_insert)) {
+        return DB_ERR;
+    }
+
+    if (process_sample_entries(fim_verify_sample_entries)) {
+        return DB_ERR;
+    }
 
     return 0;
 }
@@ -243,10 +276,18 @@ int main() {
         return 1;
     }
 
-    announce_function("fim_db_insert");
-    //if (test_fim_insert()) {
+    announce_function("test_fim_insert");
+    /*
+    if (test_fim_insert()) {
+        merror("Error in test_fim_insert() function.");
+        return 1;
+    }
+    */
+
+    announce_function("fill_entries_random");
     if (fill_entries_random(100)) {
-        merror("Error in fim_db_insert() function.");
+        merror("Error in fill_entries_random() function.");
+        return 1;
     }
 
     announce_function("fim_db_get_all");
@@ -291,6 +332,8 @@ int main() {
         merror("Error in fim_db_get_not_scanned() function.");
         return 1;
     }
+
+    fim_force_commit(); // ~~~~~~~~~~~~~
 
     announce_function("fim_db_get_inode");
     fim_entry_data **resp2 = fim_db_get_inode(1234, 1);

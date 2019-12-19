@@ -8,8 +8,8 @@ static fdb_t fim_db;
 static const char *SQL_STMT[] = {
     [FIMDB_STMT_INSERT_DATA] = "INSERT INTO entry_data (dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [FIMDB_STMT_INSERT_PATH] = "INSERT INTO entry_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-    [FIMDB_STMT_GET_PATH] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON path = ? AND entry_data.rowid = entry_path.inode_id",
-    [FIMDB_STMT_GET_INODE] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.rowid = entry_path.inode_id",
+    [FIMDB_STMT_GET_PATH] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON path = ? AND entry_data.rowid = entry_path.inode_id;",
+    [FIMDB_STMT_GET_INODE] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.rowid = entry_path.inode_id;",
     [FIMDB_STMT_GET_LAST_ROWID] = "SELECT last_insert_rowid()",
     [FIMDB_STMT_GET_ALL_ENTRIES] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;",
     [FIMDB_STMT_GET_NOT_SCANNED] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid WHERE scanned = 0 ORDER BY PATH ASC;",
@@ -23,7 +23,8 @@ static const char *SQL_STMT[] = {
     [FIMDB_STMT_DELETE_DATA_ROW] = "DELETE FROM entry_data WHERE rowid = ?;",
     [FIMDB_STMT_DELETE_PATH_INODE] = "DELETE FROM entry_path WHERE inode_id = ?;",
     [FIMDB_STMT_DELETE_PATH] = "DELETE FROM entry_path WHERE path = ?;",
-    [FIMDB_STMT_DISABLE_SCANNED] = "UPDATE entry_data SET scanned = 0;"
+    [FIMDB_STMT_DISABLE_SCANNED] = "UPDATE entry_data SET scanned = 0;",
+    [FIMDB_STMT_GET_UNIQUE_FILE] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.rowid = entry_path.inode_id AND entry_path.path = ?;"
 };
 
 static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
@@ -523,6 +524,11 @@ int fim_db_process_get_query(fdb_stmt query_id, const char * start, const char *
 void fim_check_transaction() {
     time_t now = time(NULL);
     if (fim_db.transaction.last_commit + fim_db.transaction.interval <= now) {
+        if (!fim_db.transaction.last_commit) {
+            fim_db.transaction.last_commit = now;
+            return;
+        }
+
         // If the completion of the transaction fails, we do not update the timestamp
         if (fim_exec_simple_wquery("END;") != DB_ERR) {
             mdebug1("Database transaction completed.");
@@ -555,4 +561,54 @@ sqlite3_stmt *fim_db_cache(fdb_stmt index) {
     }
 
     return stmt;
+}
+
+fim_entry_data * fim_db_get_unique_file(const char * file_path, const unsigned long int inode, const unsigned long int dev) {
+    sqlite3_stmt *stmt = fim_db_cache(FIMDB_STMT_GET_UNIQUE_FILE);
+    fim_entry_data *entry = NULL;
+    if (!stmt) {
+        goto end;
+    }
+
+    sqlite3_bind_int(stmt, 1, inode);
+    sqlite3_bind_int(stmt, 2, dev);
+    sqlite3_bind_text(stmt, 3, file_path, -1, NULL);
+
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        os_calloc(1, sizeof(fim_entry_data), entry);
+
+        w_strdup((char *)sqlite3_column_text(stmt, 0), entry->path);
+        entry->mode = (unsigned int)sqlite3_column_int(stmt, 2);
+        entry->last_event = (time_t)sqlite3_column_int(stmt, 3);
+        entry->entry_type = sqlite3_column_int(stmt, 4);
+        entry->scanned = (time_t)sqlite3_column_int(stmt, 5);
+        entry->options = (time_t)sqlite3_column_int(stmt, 6);
+        w_strdup((char *)sqlite3_column_text(stmt, 7), entry->checksum);
+        entry->dev = (unsigned long int)sqlite3_column_int(stmt, 8);
+        entry->inode = (unsigned long int)sqlite3_column_int(stmt, 9);
+        entry->size = (unsigned int)sqlite3_column_int(stmt, 10);
+        w_strdup((char *)sqlite3_column_text(stmt, 11), entry->perm);
+        w_strdup((char *)sqlite3_column_text(stmt, 12), entry->attributes);
+        w_strdup((char *)sqlite3_column_text(stmt, 13), entry->uid);
+        w_strdup((char *)sqlite3_column_text(stmt, 14), entry->gid);
+        w_strdup((char *)sqlite3_column_text(stmt, 15), entry->user_name);
+        w_strdup((char *)sqlite3_column_text(stmt, 16), entry->group_name);
+        w_strdup((char *)sqlite3_column_text(stmt, 17), entry->hash_md5);
+        w_strdup((char *)sqlite3_column_text(stmt, 18), entry->hash_sha1);
+        w_strdup((char *)sqlite3_column_text(stmt, 19), entry->hash_sha256);
+        entry->mtime = (unsigned int)sqlite3_column_int(stmt, 10);
+    }
+
+end:
+    fim_check_transaction();
+    return entry;
+}
+
+sqlite3 *test_get_db() { ///////////// ~~~~~~~~~~~~test
+    return fim_db.db;
+}
+
+void fim_force_commit() {
+    fim_db.transaction.last_commit = 1;
+    fim_check_transaction();
 }

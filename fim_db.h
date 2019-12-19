@@ -28,6 +28,7 @@ typedef enum fdb_stmt {
     FIMDB_STMT_DELETE_DATA_ROW,
     FIMDB_STMT_DELETE_PATH_INODE,
     FIMDB_STMT_DISABLE_SCANNED,
+    FIMDB_STMT_GET_UNIQUE_FILE,
     WDB_STMT_SIZE
 } fdb_stmt;
 
@@ -116,6 +117,17 @@ fim_entry_data ** fim_db_get_path(const char * file_path);
 
 
 /**
+ * @brief Get a unique file entry using its path, inode, and device.
+ *
+ * @param path A file path
+ * @param inode A file inode
+ * @param dev A file device
+ * @return fim_entry_data
+ */
+fim_entry_data * fim_db_get_unique_file(const char * file_path, const unsigned long int inode, const unsigned long int dev);
+
+
+/**
  * @brief Get all the paths within a range.
  *
  * @param start Starting path.
@@ -172,3 +184,6 @@ void fim_check_transaction();
  * @return An statement on success, NULL otherwise.
  */
 sqlite3_stmt *fim_db_cache(fdb_stmt index);
+
+sqlite3 *test_get_db(); ///////////// ~~~~~~~~~~~~test
+void fim_force_commit();
