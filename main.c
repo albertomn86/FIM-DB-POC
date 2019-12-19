@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TEST_PATH_START "/home/user/test/file1"
-#define TEST_PATH_END "/home/user/test/file4"
+#define TEST_PATH_START "/home/user/test/file_1"
+#define TEST_PATH_END "/home/user/test/file_4"
 
 int get_all_callback(fim_entry_data *entry) {
     printf("Path: %s\n", entry->path);
@@ -159,6 +159,24 @@ int test_fim_db_update() {
     return 0;
 }
 
+#define DEF_PATH "/home/user/test/file_"
+int fill_entries_random(unsigned int num_entries) {
+
+    unsigned int i = 0;
+    for(i = 0; i < num_entries; i++) {
+        fim_entry_data *data = fill_entry_struct(rand(), "rwxrwxrwx", "attrib", "0", "0", "root", "root", rand() % 1500000000, rand() % 1024, "ce6bb0ddf75be26c928ce2722e5f1625", "53bf474924c7876e2272db4a62fc64c8e2c18b51", "c2de156835127560dc1e8139846da7b7d002ac1b72024f6efb345cf27009c54c", rand() % 3, rand() % 1500000000, rand() % 3, rand() % 1024, 0, 137, "ce6bb0ddf75be26c928ce2722e5f1625");
+        char * path = calloc(512, sizeof(char));
+        snprintf(path, 512, "%s%i", DEF_PATH, i);
+        if (fim_db_insert(path, data)) {
+            printf("Error in fim_db_insert() function.");
+        }
+        free_entry_data(data);
+        free(path);
+    }
+
+}
+
+
 int fill_entries() {
 
     FILE *fp;
@@ -226,7 +244,8 @@ int main() {
     }
 
     announce_function("fim_db_insert");
-    if (test_fim_insert()) {
+    //if (test_fim_insert()) {
+    if (fill_entries_random(100)) {
         merror("Error in fim_db_insert() function.");
     }
 
