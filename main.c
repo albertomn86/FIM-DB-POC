@@ -13,6 +13,7 @@ int get_all_callback(fim_entry_data *entry) {
 }
 
 static fim_entry_data *fill_entry_struct(
+    const char * path,
     unsigned int size,
     const char * perm,
     const char * attributes,
@@ -34,6 +35,7 @@ static fim_entry_data *fill_entry_struct(
     const char * checksum
 ) {
     fim_entry_data *data = calloc(1, sizeof(fim_entry_data));
+    data->path = strdup(path);
     data->size = size;
     data->perm = strdup(perm);
     data->attributes = strdup(attributes);
@@ -164,7 +166,7 @@ int fill_entries_random(unsigned int num_entries) {
 
     unsigned int i = 0;
     for(i = 0; i < num_entries; i++) {
-        fim_entry_data *data = fill_entry_struct(rand(), "rwxrwxrwx", "attrib", "0", "0", "root", "root", rand() % 1500000000, rand() % 1024, "ce6bb0ddf75be26c928ce2722e5f1625", "53bf474924c7876e2272db4a62fc64c8e2c18b51", "c2de156835127560dc1e8139846da7b7d002ac1b72024f6efb345cf27009c54c", rand() % 3, rand() % 1500000000, rand() % 3, rand() % 1024, 0, 137, "ce6bb0ddf75be26c928ce2722e5f1625");
+        fim_entry_data *data = fill_entry_struct("", rand(), "rwxrwxrwx", "attrib", "0", "0", "root", "root", rand() % 1500000000, rand() % 1024, "ce6bb0ddf75be26c928ce2722e5f1625", "53bf474924c7876e2272db4a62fc64c8e2c18b51", "c2de156835127560dc1e8139846da7b7d002ac1b72024f6efb345cf27009c54c", rand() % 3, rand() % 1500000000, rand() % 3, rand() % 1024, 0, 137, "ce6bb0ddf75be26c928ce2722e5f1625");
         char * path = calloc(512, sizeof(char));
         snprintf(path, 512, "%s%i", DEF_PATH, i);
         if (fim_db_insert(path, data)) {
@@ -215,10 +217,10 @@ int process_sample_entries(int (*callback)(const char *path, fim_entry_data *dat
     while(fgets(line, 2048, fp)) {
         sscanf(line, "%s %u %s %s %s %s %s %s %u %ld %s %s %s %i %lu %i %ld %u %i %s",\
             path, &size, perm, attributes, uid, gid, user_name, group_name, &mtime, &inode, hash_md5, hash_sha1, hash_sha256, &mode, &last_event, &entry_type, &dev, &scanned, &options, checksum);
-        fim_entry_data *data = fill_entry_struct(size, perm, attributes, uid, gid, user_name, group_name, mtime, inode, hash_md5, hash_sha1, hash_sha256, mode, last_event, entry_type, dev, scanned, options, checksum);
+        fim_entry_data *data = fill_entry_struct(path, size, perm, attributes, uid, gid, user_name, group_name, mtime, inode, hash_md5, hash_sha1, hash_sha256, mode, last_event, entry_type, dev, scanned, options, checksum);
         print_fim_entry_data(data);
         if (callback(path, data)) {
-            printf("Error in process_sample_entries() function. PATH: %s", path);
+            printf("Error in process_sample_entries() function. PATH: %s\n", path);
             return DB_ERR;
         }
         free_entry_data(data);
@@ -276,19 +278,20 @@ int main() {
         return 1;
     }
 
+/*
     announce_function("test_fim_insert");
-    /*
     if (test_fim_insert()) {
         merror("Error in test_fim_insert() function.");
         return 1;
     }
-    */
-
+*/
     announce_function("fill_entries_random");
-    if (fill_entries_random(100)) {
+    if (fill_entries_random(1000000)) {
         merror("Error in fill_entries_random() function.");
         return 1;
     }
+    fim_force_commit(); // ~~~~~~~~~~~~~
+    exit(1);
 
     announce_function("fim_db_get_all");
     if (fim_db_get_all(get_all_callback)) {

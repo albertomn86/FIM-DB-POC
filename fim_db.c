@@ -70,6 +70,10 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
         goto end;
     }
 
+    if (!strcmp("/home/user/test/file2", file_path)) {
+        printf("~~~~~~~~~~~\n");
+    }
+
     sqlite3_bind_int(stmt, 1, entry->dev);
     sqlite3_bind_int(stmt, 2, entry->inode);
     sqlite3_bind_int(stmt, 3, entry->size);
@@ -138,8 +142,8 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
         // Add to entry_path
         // Get ID
         sqlite3_prepare_v2(fim_db.db, SQL_STMT[FIMDB_STMT_GET_DATA_ROW], -1, &stmt, 0);
-        sqlite3_bind_int(stmt, 1, entry->dev);
-        sqlite3_bind_int(stmt, 2, entry->inode);
+        sqlite3_bind_int(stmt, 1, entry->inode);
+        sqlite3_bind_int(stmt, 2, entry->dev);
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             int row_id = sqlite3_column_int(stmt, 0);
             // Insert in inode_path
@@ -158,6 +162,8 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
                 merror("SQL ERROR: %s", sqlite3_errmsg(fim_db.db));
                 goto end;
             }
+        } else {
+            goto end;
         }
     }
 
@@ -289,7 +295,7 @@ fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned
         w_strdup((char *)sqlite3_column_text(stmt, 17), entry[size]->hash_md5);
         w_strdup((char *)sqlite3_column_text(stmt, 18), entry[size]->hash_sha1);
         w_strdup((char *)sqlite3_column_text(stmt, 19), entry[size]->hash_sha256);
-        entry[size]->mtime = (unsigned int)sqlite3_column_int(stmt, 10);
+        entry[size]->mtime = (unsigned int)sqlite3_column_int(stmt, 20);
 
         size++;
     }
@@ -336,7 +342,7 @@ fim_entry_data ** fim_db_get_path(const char * file_path) {
         w_strdup((char *)sqlite3_column_text(stmt, 17), entry[size]->hash_md5);
         w_strdup((char *)sqlite3_column_text(stmt, 18), entry[size]->hash_sha1);
         w_strdup((char *)sqlite3_column_text(stmt, 19), entry[size]->hash_sha256);
-        entry[size]->mtime = (unsigned int)sqlite3_column_int(stmt, 10);
+        entry[size]->mtime = (unsigned int)sqlite3_column_int(stmt, 20);
 
         size++;
     }
@@ -544,22 +550,23 @@ sqlite3_stmt *fim_db_cache(fdb_stmt index) {
 
     if (index >= WDB_STMT_SIZE) {
         merror("Error in fim_db_cache(): Invalid index: %d.", (int) index);
+        goto end;
     } else if (!fim_db.stmt[index]) {
         if (sqlite3_prepare_v2(fim_db.db, SQL_STMT[index], -1, &fim_db.stmt[index], NULL) != SQLITE_OK) {
             merror("Error in fim_db_cache(): %s", sqlite3_errmsg(fim_db.db));
-        } else {
-            stmt = fim_db.stmt[index];
+            goto end;
         }
     } else if (sqlite3_reset(fim_db.stmt[index]) != SQLITE_OK || sqlite3_clear_bindings(fim_db.stmt[index]) != SQLITE_OK) {
         wdb_finalize(fim_db.stmt[index]);
 
         if (sqlite3_prepare_v2(fim_db.db, SQL_STMT[index], -1, &fim_db.stmt[index], NULL) != SQLITE_OK) {
             merror("Error in fim_db_cache(): %s", sqlite3_errmsg(fim_db.db));
+            goto end;
         }
-    }  else {
-        stmt = fim_db.stmt[index];
     }
 
+    stmt = fim_db.stmt[index];
+end:
     return stmt;
 }
 
@@ -596,7 +603,7 @@ fim_entry_data * fim_db_get_unique_file(const char * file_path, const unsigned l
         w_strdup((char *)sqlite3_column_text(stmt, 17), entry->hash_md5);
         w_strdup((char *)sqlite3_column_text(stmt, 18), entry->hash_sha1);
         w_strdup((char *)sqlite3_column_text(stmt, 19), entry->hash_sha256);
-        entry->mtime = (unsigned int)sqlite3_column_int(stmt, 10);
+        entry->mtime = (unsigned int)sqlite3_column_int(stmt, 20);
     }
 
 end:

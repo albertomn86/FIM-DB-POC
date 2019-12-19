@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS entry_path (
     PRIMARY KEY(path, inode_id)
 );
 
+CREATE UNIQUE INDEX path_index ON entry_path(path, inode_id, scanned);
+
 CREATE TABLE IF NOT EXISTS entry_data (
     dev INTEGER,
     inode INTEGER,
