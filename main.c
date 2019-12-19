@@ -111,40 +111,49 @@ int print_fim_entry_data(fim_entry_data *entry) {
 }
 
 int test_fim_db_update() {
-    fim_entry_data *resp = fim_db_get_path(TEST_PATH_START);
+    fim_entry_data **resp = fim_db_get_path(TEST_PATH_START);
     if (!resp) {
         return -1;
     }
 
+    int i;
     // Modify the current content
-    resp->size +=100;
-    free(resp->perm);
-    os_strdup("!!!", resp->perm);
-    free(resp->hash_sha256);
-    os_strdup("new_sha256", resp->hash_sha256);
-    resp->scanned = 1;
-    free(resp->checksum);
-    os_strdup("====", resp->checksum);
+    for (i = 0; resp && resp[i]; i++) {
+        resp[i]->size +=100;
+        free(resp[i]->perm);
+        os_strdup("!!!", resp[i]->perm);
+        free(resp[i]->hash_sha256);
+        os_strdup("new_sha256", resp[i]->hash_sha256);
+        resp[i]->scanned = 1;
+        free(resp[i]->checksum);
+        os_strdup("====", resp[i]->checksum);
 
-    // Declaration of intentions
-    printf("New attrs for '%s'\n" \
-            " - Size: %u\n" \
-            " - Perm: %s\n" \
-            " - Sha256: %s\n" \
-            " - Scanned: %u\n" \
-            " - Checksum: %s\n",
-            resp->path, resp->size, resp->perm, resp->hash_sha256, resp->scanned, resp->checksum);
+        // Declaration of intentions
+        printf("New attrs for '%s'\n" \
+                " - Size: %u\n" \
+                " - Perm: %s\n" \
+                " - Sha256: %s\n" \
+                " - Scanned: %u\n" \
+                " - Checksum: %s\n",
+                resp[i]->path, resp[i]->size, resp[i]->perm, resp[i]->hash_sha256, resp[i]->scanned, resp[i]->checksum);
 
-    // Update the database
-    if (fim_db_update(resp->inode, resp->dev, resp)) {
-        return DB_ERR;
-    }
+        // Update the database
+        if (fim_db_update(resp[i]->inode, resp[i]->dev, resp[i])) {
+            return DB_ERR;
+        }
 
-    // Confirm the change
-    printf("Database content:\n");
-    fim_entry_data *updated_entry = fim_db_get_path(TEST_PATH_START);
-    if (updated_entry) {
-        print_fim_entry_data_full(updated_entry);
+        // Confirm the change
+        printf("Database content:\n");
+        fim_entry_data **updated_entry = fim_db_get_path(TEST_PATH_START);
+        int j;
+        for (j = 0; updated_entry && updated_entry[j]; j++) {
+            if (!strcmp(updated_entry[j]->path, resp[i]->path) &&
+                updated_entry[j]->inode == resp[i]->inode &&
+                updated_entry[j]->dev == resp[i]->dev) {
+                print_fim_entry_data_full(updated_entry[j]);
+                break;
+            }
+        }
     }
 
     return 0;
@@ -163,9 +172,9 @@ int fill_entries() {
     }
 
     char path[512];
-    unsigned int size;
+    int size;
+    char attributes[128] = "---------------";
     char perm[128];
-    char attributes[128];
     char uid[5];
     char gid[5];
     char user_name[64];
@@ -200,6 +209,15 @@ int fill_entries() {
     return 0;
 }
 
+int test_fim_insert() {
+    if (fill_entries()) {
+        return DB_ERR;
+    }
+
+
+    return 0;
+}
+
 int main() {
     announce_function("fim_db_init");
     if (fim_db_init() == DB_ERR) {
@@ -208,8 +226,8 @@ int main() {
     }
 
     announce_function("fim_db_insert");
-    if (fill_entries()) {
-        merror("Error in fill_entries() function.");
+    if (test_fim_insert()) {
+        merror("Error in fim_db_insert() function.");
     }
 
     announce_function("fim_db_get_all");
@@ -231,16 +249,17 @@ int main() {
     }
 
     announce_function("fim_db_get_path");
-    fim_entry_data *resp = fim_db_get_path(TEST_PATH_START);
-    unsigned int i = 0;
+    fim_entry_data **resp = fim_db_get_path(TEST_PATH_START);
+    unsigned int i;
     if (!resp) {
         merror("Error in fim_db_get_path() function.");
         return 1;
     }
-    while (resp[i++].path) {
-        print_fim_entry_data(resp);
-        free_entry_data(resp);
+    for (i = 0; resp[i]; i++) {
+        print_fim_entry_data(resp[i]);
+        free_entry_data(resp[i]);
     }
+    free(resp);
 
     announce_function("fim_db_update");
     if (test_fim_db_update()) {
@@ -255,16 +274,17 @@ int main() {
     }
 
     announce_function("fim_db_get_inode");
-    fim_entry_data *resp2 = fim_db_get_inode(1234, 1);
-    unsigned int j = 0;
+    fim_entry_data **resp2 = fim_db_get_inode(1234, 1);
+    unsigned int j;
     if (!resp2) {
         merror("Error in fim_db_get_inode() function.");
         return 1;
     }
-    while (resp2[j++].path) {
-        print_fim_entry_data(resp2);
-        free_entry_data(resp2);
+    for (j = 0; resp2[j]; j++) {
+        print_fim_entry_data(resp2[j]);
+        free_entry_data(resp2[j]);
     }
+    free(resp2);
 
     announce_function("fim_db_delete_unscanned");
     if (fim_db_delete_unscanned()) {

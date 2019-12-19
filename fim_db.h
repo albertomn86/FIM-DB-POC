@@ -103,7 +103,7 @@ int fim_db_remove_inode(const unsigned long int inode, const unsigned long int d
  * @param dev Device
  * @return List of fim_entry_data.
  */
-fim_entry_data * fim_db_get_inode(const unsigned long int inode, const unsigned long int dev);
+fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned long int dev);
 
 
 /**
@@ -112,7 +112,7 @@ fim_entry_data * fim_db_get_inode(const unsigned long int inode, const unsigned 
  * @param inode
  * @return fim_entry_data
  */
-fim_entry_data * fim_db_get_path(const char * file_path);
+fim_entry_data ** fim_db_get_path(const char * file_path);
 
 
 /**
