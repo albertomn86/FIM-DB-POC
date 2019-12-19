@@ -255,7 +255,7 @@ int main() {
     }
 
     announce_function("fim_db_get_inode");
-    fim_entry_data *resp2 = fim_db_get_inode(6121, 2);
+    fim_entry_data *resp2 = fim_db_get_inode(1234, 1);
     unsigned int j = 0;
     if (!resp2) {
         merror("Error in fim_db_get_inode() function.");
