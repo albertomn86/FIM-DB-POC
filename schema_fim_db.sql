@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS entry_path (
     scanned INTEGER,
     options INTEGER,
     checksum TEXT NOT NULL,
-    PRIMARY KEY(path, inode_id)
+    PRIMARY KEY(path)
 );
 
 CREATE UNIQUE INDEX path_index ON entry_path(path, inode_id, scanned);

@@ -1,6 +1,9 @@
 #include "fim_db.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #define TEST_PATH_START "/home/user/test/file_1"
 #define TEST_PATH_END "/home/user/test/file_4"
@@ -271,8 +274,11 @@ int test_fim_insert() {
     return 0;
 }
 
-int main() {
-    announce_function("fim_db_init");
+int main(int argc, char *argv[]) {
+
+    clock_t start, end, commit;
+
+    //announce_function("fim_db_init");
     if (fim_db_init() == DB_ERR) {
         merror("Could not init the database.");
         return 1;
@@ -285,12 +291,25 @@ int main() {
         return 1;
     }
 */
-    announce_function("fill_entries_random");
-    if (fill_entries_random(1000000)) {
+    //announce_function("fill_entries_random");
+    start = clock();
+    if (fill_entries_random(atoi(argv[1]))) {
         merror("Error in fill_entries_random() function.");
         return 1;
     }
+    end = clock();
+
     fim_force_commit(); // ~~~~~~~~~~~~~
+
+    commit = clock();
+    sqlite3_close_v2(test_get_db());
+
+    struct stat st;
+    stat("fim.db", &st);
+    int size = st.st_size;
+
+    printf("%s,%f,%f,%f", argv[1], ((double) (end - start)) / CLOCKS_PER_SEC, ((double) (commit - end)) / CLOCKS_PER_SEC, ((double) (commit - start)) / CLOCKS_PER_SEC);
+
     exit(1);
 
     announce_function("fim_db_get_all");
