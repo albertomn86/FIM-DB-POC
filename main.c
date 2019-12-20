@@ -173,9 +173,7 @@ int fill_entries_random(unsigned int num_entries) {
         char * path = calloc(512, sizeof(char));
         snprintf(path, 512, "%s%i", DEF_PATH, i);
 
-        if (!(i % 1000)) {
-            printf("Files: %d\n", i);
-        }
+
 
         if (fim_db_insert(path, data)) {
             printf("Error in fim_db_insert() function.");

@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define debug_level 1
+#define debug_level 0
 #define max_size 20000
 typedef struct fim_entry_data {
     char *path; // Duda ~~~~~~
