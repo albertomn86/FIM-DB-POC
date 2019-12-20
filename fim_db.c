@@ -72,6 +72,7 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
         goto end;
     }
 
+    // Insert in entry_data
     sqlite3_bind_int(stmt, 1, row_id);
     sqlite3_bind_int(stmt, 2, entry->dev);
     sqlite3_bind_int(stmt, 3, entry->inode);
@@ -91,7 +92,6 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
     case SQLITE_DONE:
         // Insert in inode_path
         if (stmt = fim_db_cache(FIMDB_STMT_INSERT_PATH), !stmt) {
-            fim_db_remove_inode(entry->inode, entry->dev);
             goto end;
         }
         sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
@@ -104,7 +104,9 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
         sqlite3_bind_text(stmt, 8, entry->checksum, -1, NULL);
 
         if (sqlite3_step(stmt) != SQLITE_DONE) {
-            fim_db_remove_inode(entry->inode, entry->dev);
+            // ERROR: duplicado -> no puede darse el caso. no hay paths iguales con mismo inodo y dev
+            // ERROR: error de insercion -> deja la BD rota. hay que deshacer la insercion en entry_data
+            merror("SQL ERROR 1: %s", sqlite3_errmsg(fim_db.db));
             goto end;
         }
         row_id++;
@@ -129,7 +131,8 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
         sqlite3_bind_int(stmt, 12, entry->dev);
         sqlite3_bind_int(stmt, 13, entry->inode);
         if (sqlite3_step(stmt) != SQLITE_DONE) {
-            merror("SQL ERROR: %s", sqlite3_errmsg(fim_db.db));
+            // ERROR: no puede actualizar -> nos dejaria los datos anteriores
+            merror("SQL ERROR 2: %s", sqlite3_errmsg(fim_db.db));
             goto end;
         }
 
@@ -142,7 +145,6 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
             int data_id = sqlite3_column_int(stmt, 0);
             // Insert in inode_path
             sqlite3_prepare_v2(fim_db.db, SQL_STMT[FIMDB_STMT_INSERT_PATH], -1, &stmt, 0);
-
             sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
             sqlite3_bind_int(stmt, 2, data_id);
             sqlite3_bind_int(stmt, 3, entry->mode);
@@ -152,8 +154,10 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
             sqlite3_bind_int(stmt, 7, entry->options);
             sqlite3_bind_text(stmt, 8, entry->checksum, -1, NULL);
 
-            if (sqlite3_step(stmt) != SQLITE_DONE) {
-                merror("SQL ERROR: %s", sqlite3_errmsg(fim_db.db));
+            int res = sqlite3_step(stmt);
+            if (res != SQLITE_DONE && res != SQLITE_CONSTRAINT) {
+                // ERROR: error de insercion -> Nos deja sin ese path.
+                merror("SQL ERROR 3 (%i): %s", res, sqlite3_errmsg(fim_db.db));
                 goto end;
             }
         } else {

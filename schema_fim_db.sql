@@ -41,7 +41,6 @@ CREATE TABLE IF NOT EXISTS entry_data (
 
 
 CREATE INDEX IF NOT EXISTS data_id_index ON entry_data (data_id);
-CREATE INDEX IF NOT EXISTS dev_index ON entry_data (dev);
-CREATE INDEX IF NOT EXISTS inode_index ON entry_data (inode);
+CREATE INDEX IF NOT EXISTS dev_index ON entry_data (dev, inode);
 
 PRAGMA journal_mode=WAL;
