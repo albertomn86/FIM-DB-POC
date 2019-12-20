@@ -78,7 +78,7 @@ int wdb_create_file(const char *path, const char *source) {
         break;
 
     default:
-        printf("Ignoring chown when creating file from SQL.");
+        mdebug1("Ignoring chown when creating file from SQL.");
         break;
     }
 

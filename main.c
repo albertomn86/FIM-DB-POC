@@ -355,8 +355,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    fim_force_commit(); // ~~~~~~~~~~~~~
-
     announce_function("fim_db_get_inode");
     fim_entry_data **resp2 = fim_db_get_inode(1234, 1);
     unsigned int j;

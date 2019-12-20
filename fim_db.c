@@ -6,25 +6,25 @@
 static fdb_t fim_db;
 
 static const char *SQL_STMT[] = {
-    [FIMDB_STMT_INSERT_DATA] = "INSERT INTO entry_data (dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+    [FIMDB_STMT_INSERT_DATA] = "INSERT INTO entry_data (data_id, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
     [FIMDB_STMT_INSERT_PATH] = "INSERT INTO entry_path (path, inode_id, mode, last_event, entry_type, scanned, options, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-    [FIMDB_STMT_GET_PATH] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON path = ? AND entry_data.rowid = entry_path.inode_id;",
-    [FIMDB_STMT_GET_INODE] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.rowid = entry_path.inode_id;",
+    [FIMDB_STMT_GET_PATH] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON path = ? AND entry_data.data_id = entry_path.inode_id;",
+    [FIMDB_STMT_GET_INODE] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.data_id = entry_path.inode_id;",
     [FIMDB_STMT_GET_LAST_ROWID] = "SELECT last_insert_rowid()",
-    [FIMDB_STMT_GET_ALL_ENTRIES] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid ORDER BY PATH ASC;",
-    [FIMDB_STMT_GET_NOT_SCANNED] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.rowid WHERE scanned = 0 ORDER BY PATH ASC;",
+    [FIMDB_STMT_GET_ALL_ENTRIES] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.data_id ORDER BY PATH ASC;",
+    [FIMDB_STMT_GET_NOT_SCANNED] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_data INNER JOIN entry_path ON inode_id = entry_data.data_id WHERE scanned = 0 ORDER BY PATH ASC;",
     [FIMDB_STMT_SET_ALL_UNSCANNED] = "UPDATE entry_path SET scanned = 0;",
     [FIMDB_STMT_DELETE_UNSCANNED] = "DELETE FROM entry_path WHERE scanned = 0;",
     [FIMDB_STMT_UPDATE_ENTRY_DATA] = "UPDATE entry_data SET size = ?, perm = ?, attributes = ?, uid = ?, gid = ?, user_name = ?, group_name = ?, hash_md5 = ?, hash_sha1 = ?, hash_sha256 = ?, mtime = ? WHERE dev = ? AND inode = ?;",
-    [FIMDB_STMT_UPDATE_ENTRY_PATH] = "UPDATE entry_path SET mode = ?, last_event = ?, entry_type = ?, scanned = ?, options = ?, checksum = ? WHERE inode_id = (SELECT rowid FROM entry_data WHERE dev = ? AND inode = ?);",
+    [FIMDB_STMT_UPDATE_ENTRY_PATH] = "UPDATE entry_path SET mode = ?, last_event = ?, entry_type = ?, scanned = ?, options = ?, checksum = ? WHERE inode_id = (SELECT data_id FROM entry_data WHERE dev = ? AND inode = ?);",
     [FIMDB_STMT_GET_PATH_COUNT] = "SELECT count(*), inode_id FROM entry_path WHERE path = ?;",
-    [FIMDB_STMT_DELETE_DATA_ID] = "DELETE FROM entry_data WHERE rowid = ?;",
-    [FIMDB_STMT_GET_DATA_ROW] = "SELECT rowid FROM entry_data WHERE inode = ? AND dev = ?;",
-    [FIMDB_STMT_DELETE_DATA_ROW] = "DELETE FROM entry_data WHERE rowid = ?;",
+    [FIMDB_STMT_DELETE_DATA_ID] = "DELETE FROM entry_data WHERE data_id = ?;",
+    [FIMDB_STMT_GET_DATA_ROW] = "SELECT data_id FROM entry_data WHERE inode = ? AND dev = ?;",
+    [FIMDB_STMT_DELETE_DATA_ROW] = "DELETE FROM entry_data WHERE data_id = ?;",
     [FIMDB_STMT_DELETE_PATH_INODE] = "DELETE FROM entry_path WHERE inode_id = ?;",
     [FIMDB_STMT_DELETE_PATH] = "DELETE FROM entry_path WHERE path = ?;",
     [FIMDB_STMT_DISABLE_SCANNED] = "UPDATE entry_data SET scanned = 0;",
-    [FIMDB_STMT_GET_UNIQUE_FILE] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.rowid = entry_path.inode_id AND entry_path.path = ?;"
+    [FIMDB_STMT_GET_UNIQUE_FILE] = "SELECT path, inode_id, mode, last_event, entry_type, scanned, options, checksum, dev, inode, size, perm, attributes, uid, gid, user_name, group_name, hash_md5, hash_sha1, hash_sha256, mtime FROM entry_path INNER JOIN entry_data ON inode = ? AND dev = ? AND entry_data.data_id = entry_path.inode_id AND entry_path.path = ?;"
 };
 
 static fim_entry_data *fim_decode_full_row(sqlite3_stmt *stmt);
@@ -66,54 +66,48 @@ int fim_db_init(void) {
 int fim_db_insert(const char* file_path, fim_entry_data *entry) {
     int retval = DB_ERR;
     sqlite3_stmt *stmt = fim_db_cache(FIMDB_STMT_INSERT_DATA);
+    static int row_id = 0;
+
     if (!stmt) {
         goto end;
     }
 
-    if (!strcmp("/home/user/test/file2", file_path)) {
-        printf("~~~~~~~~~~~\n");
-    }
-
-    sqlite3_bind_int(stmt, 1, entry->dev);
-    sqlite3_bind_int(stmt, 2, entry->inode);
-    sqlite3_bind_int(stmt, 3, entry->size);
-    sqlite3_bind_text(stmt, 4, entry->perm, -1, NULL);
-    sqlite3_bind_text(stmt, 5, entry->attributes, -1, NULL);
-    sqlite3_bind_text(stmt, 6, entry->uid, -1, NULL);
-    sqlite3_bind_text(stmt, 7, entry->gid, -1, NULL);
-    sqlite3_bind_text(stmt, 8, entry->user_name, -1, NULL);
-    sqlite3_bind_text(stmt, 9, entry->group_name, -1, NULL);
-    sqlite3_bind_text(stmt, 10, entry->hash_md5, -1, NULL);
-    sqlite3_bind_text(stmt, 11, entry->hash_sha1, -1, NULL);
-    sqlite3_bind_text(stmt, 12, entry->hash_sha256, -1, NULL);
-    sqlite3_bind_int(stmt, 13, entry->mtime);
-
+    sqlite3_bind_int(stmt, 1, row_id);
+    sqlite3_bind_int(stmt, 2, entry->dev);
+    sqlite3_bind_int(stmt, 3, entry->inode);
+    sqlite3_bind_int(stmt, 4, entry->size);
+    sqlite3_bind_text(stmt, 5, entry->perm, -1, NULL);
+    sqlite3_bind_text(stmt, 6, entry->attributes, -1, NULL);
+    sqlite3_bind_text(stmt, 7, entry->uid, -1, NULL);
+    sqlite3_bind_text(stmt, 8, entry->gid, -1, NULL);
+    sqlite3_bind_text(stmt, 9, entry->user_name, -1, NULL);
+    sqlite3_bind_text(stmt, 10, entry->group_name, -1, NULL);
+    sqlite3_bind_text(stmt, 11, entry->hash_md5, -1, NULL);
+    sqlite3_bind_text(stmt, 12, entry->hash_sha1, -1, NULL);
+    sqlite3_bind_text(stmt, 13, entry->hash_sha256, -1, NULL);
+    sqlite3_bind_int(stmt, 14, entry->mtime);
 
     switch(sqlite3_step(stmt)) {
     case SQLITE_DONE:
-        // Get ID
-        if (stmt = fim_db_cache(FIMDB_STMT_GET_LAST_ROWID), !stmt) {
+        // Insert in inode_path
+        if (stmt = fim_db_cache(FIMDB_STMT_INSERT_PATH), !stmt) {
+            fim_db_remove_inode(entry->inode, entry->dev);
             goto end;
         }
-        if (sqlite3_step(stmt) == SQLITE_ROW) {
-            int row_id = sqlite3_column_int(stmt, 0);
-            // Insert in inode_path
-            if (stmt = fim_db_cache(FIMDB_STMT_INSERT_PATH), !stmt) {
-                goto end;
-            }
-            sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
-            sqlite3_bind_int(stmt, 2, row_id);
-            sqlite3_bind_int(stmt, 3, entry->mode);
-            sqlite3_bind_int(stmt, 4, entry->last_event);
-            sqlite3_bind_int(stmt, 5, entry->entry_type);
-            sqlite3_bind_int(stmt, 6, entry->scanned);
-            sqlite3_bind_int(stmt, 7, entry->options);
-            sqlite3_bind_text(stmt, 8, entry->checksum, -1, NULL);
+        sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
+        sqlite3_bind_int(stmt, 2, row_id);
+        sqlite3_bind_int(stmt, 3, entry->mode);
+        sqlite3_bind_int(stmt, 4, entry->last_event);
+        sqlite3_bind_int(stmt, 5, entry->entry_type);
+        sqlite3_bind_int(stmt, 6, entry->scanned);
+        sqlite3_bind_int(stmt, 7, entry->options);
+        sqlite3_bind_text(stmt, 8, entry->checksum, -1, NULL);
 
-            if (sqlite3_step(stmt) != SQLITE_DONE) {
-                goto end;
-            }
+        if (sqlite3_step(stmt) != SQLITE_DONE) {
+            fim_db_remove_inode(entry->inode, entry->dev);
+            goto end;
         }
+        row_id++;
         break;
 
     case SQLITE_CONSTRAINT: // File already in entry_data (link)
@@ -145,12 +139,12 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
         sqlite3_bind_int(stmt, 1, entry->inode);
         sqlite3_bind_int(stmt, 2, entry->dev);
         if (sqlite3_step(stmt) == SQLITE_ROW) {
-            int row_id = sqlite3_column_int(stmt, 0);
+            int data_id = sqlite3_column_int(stmt, 0);
             // Insert in inode_path
             sqlite3_prepare_v2(fim_db.db, SQL_STMT[FIMDB_STMT_INSERT_PATH], -1, &stmt, 0);
 
             sqlite3_bind_text(stmt, 1, file_path, -1, NULL);
-            sqlite3_bind_int(stmt, 2, row_id);
+            sqlite3_bind_int(stmt, 2, data_id);
             sqlite3_bind_int(stmt, 3, entry->mode);
             sqlite3_bind_int(stmt, 4, entry->last_event);
             sqlite3_bind_int(stmt, 5, entry->entry_type);
@@ -168,8 +162,8 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
     }
 
     retval = 0;
+    fim_force_commit();
 end:
-    fim_check_transaction();
     return retval;
 }
 
@@ -537,7 +531,7 @@ void fim_check_transaction() {
 
         // If the completion of the transaction fails, we do not update the timestamp
         if (fim_exec_simple_wquery("END;") != DB_ERR) {
-            mdebug1("Database transaction completed.");
+            //mdebug1("Database transaction completed.");
             fim_db.transaction.last_commit = now;
             while (fim_exec_simple_wquery("BEGIN;") == DB_ERR);
         }
