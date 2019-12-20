@@ -166,7 +166,7 @@ int fim_db_insert(const char* file_path, fim_entry_data *entry) {
     }
 
     retval = 0;
-    fim_force_commit();
+    fim_check_transaction();
 end:
     return retval;
 }
@@ -535,7 +535,7 @@ void fim_check_transaction() {
 
         // If the completion of the transaction fails, we do not update the timestamp
         if (fim_exec_simple_wquery("END;") != DB_ERR) {
-            //mdebug1("Database transaction completed.");
+            mdebug1("Database transaction completed.");
             fim_db.transaction.last_commit = now;
             while (fim_exec_simple_wquery("BEGIN;") == DB_ERR);
         }

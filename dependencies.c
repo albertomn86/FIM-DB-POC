@@ -197,3 +197,11 @@ void free_entry_data(fim_entry_data * data) {
 
     os_free(data);
 }
+
+void gettime(struct timespec *ts) {
+    clock_gettime(CLOCK_REALTIME, ts);
+}
+
+double time_diff(const struct timespec * b, const struct timespec * a) {
+    return b->tv_sec - a->tv_sec + (b->tv_nsec - a->tv_nsec) / 1e9;
+}

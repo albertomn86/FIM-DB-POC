@@ -169,9 +169,14 @@ int fill_entries_random(unsigned int num_entries) {
 
     unsigned int i = 0;
     for(i = 0; i < num_entries; i++) {
-        fim_entry_data *data = fill_entry_struct("", rand(), "rwxrwxrwx", "attrib", "0", "0", "root", "root", rand() % 1500000000, rand() % 1024, "ce6bb0ddf75be26c928ce2722e5f1625", "53bf474924c7876e2272db4a62fc64c8e2c18b51", "c2de156835127560dc1e8139846da7b7d002ac1b72024f6efb345cf27009c54c", rand() % 3, rand() % 1500000000, rand() % 3, rand() % 1024, 0, 137, "ce6bb0ddf75be26c928ce2722e5f1625");
+        fim_entry_data *data = fill_entry_struct("", rand(), "rwxrwxrwx", "attrib", "0", "0", "root", "root", rand() % 1500000000, rand() % 10000, "ce6bb0ddf75be26c928ce2722e5f1625", "53bf474924c7876e2272db4a62fc64c8e2c18b51", "c2de156835127560dc1e8139846da7b7d002ac1b72024f6efb345cf27009c54c", rand() % 3, rand() % 1500000000, rand() % 3, rand() % 1024, 0, 137, "ce6bb0ddf75be26c928ce2722e5f1625");
         char * path = calloc(512, sizeof(char));
         snprintf(path, 512, "%s%i", DEF_PATH, i);
+
+        if (!(i % 1000)) {
+            printf("Files: %d\n", i);
+        }
+
         if (fim_db_insert(path, data)) {
             printf("Error in fim_db_insert() function.");
             return DB_ERR;
@@ -276,7 +281,7 @@ int test_fim_insert() {
 
 int main(int argc, char *argv[]) {
 
-    clock_t start, end, commit;
+    struct timespec start, end, commit;
 
     //announce_function("fim_db_init");
     if (fim_db_init() == DB_ERR) {
@@ -292,25 +297,27 @@ int main(int argc, char *argv[]) {
     }
 */
     //announce_function("fill_entries_random");
-    start = clock();
+    gettime(&start);
+
     if (fill_entries_random(atoi(argv[1]))) {
         merror("Error in fill_entries_random() function.");
         return 1;
     }
-    end = clock();
+
+    gettime(&end);
 
     fim_force_commit(); // ~~~~~~~~~~~~~
 
-    commit = clock();
+    gettime(&commit);
     sqlite3_close_v2(test_get_db());
 
     struct stat st;
     stat("fim.db", &st);
     int size = st.st_size;
 
-    printf("%s,%f,%f,%f", argv[1], ((double) (end - start)) / CLOCKS_PER_SEC, ((double) (commit - end)) / CLOCKS_PER_SEC, ((double) (commit - start)) / CLOCKS_PER_SEC);
+    printf("%s,%f,%f,%f", argv[1], (double) time_diff(&end, &start), (double) time_diff(&commit, &end), (double) time_diff(&commit, &start));
 
-    exit(1);
+    exit(0);
 
     announce_function("fim_db_get_all");
     if (fim_db_get_all(get_all_callback)) {
