@@ -16,13 +16,12 @@ CREATE TABLE IF NOT EXISTS entry_path (
     options INTEGER,
     checksum TEXT NOT NULL,
     PRIMARY KEY(path)
-) WITHOUT ROWID;
+);
 
 CREATE INDEX IF NOT EXISTS path_index ON entry_path (path);
-CREATE INDEX IF NOT EXISTS inode_id_index ON entry_path (inode_id);
+CREATE INDEX IF NOT EXISTS inode_index ON entry_path (inode_id);
 
 CREATE TABLE IF NOT EXISTS entry_data (
-    data_id INTEGER,
     dev INTEGER,
     inode INTEGER,
     size INTEGER,
@@ -37,9 +36,6 @@ CREATE TABLE IF NOT EXISTS entry_data (
     hash_sha256 TEXT,
     mtime INTEGER,
     PRIMARY KEY(dev, inode)
-) WITHOUT ROWID;
+);
 
-
-CREATE INDEX IF NOT EXISTS data_id_index ON entry_data (data_id);
-CREATE INDEX IF NOT EXISTS dev_index ON entry_data (dev, inode);
-
+CREATE INDEX IF NOT EXISTS dev_inode_index ON entry_data (dev, inode);

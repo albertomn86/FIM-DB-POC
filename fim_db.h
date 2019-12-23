@@ -11,7 +11,9 @@ const char * fim_db_err_to_str(int err);
 
 typedef enum fdb_stmt {
     FIMDB_STMT_INSERT_DATA,
+    FIMDB_STMT_INSERT_DATA_V2,
     FIMDB_STMT_INSERT_PATH,
+    FIMDB_STMT_INSERT_PATH_V2,
     FIMDB_STMT_GET_PATH,
     FIMDB_STMT_GET_INODE,
     FIMDB_STMT_GET_LAST_ROWID,
@@ -68,7 +70,7 @@ int fim_db_clean(void);
  * @return 0 on success, DB_ERROR otherwise.
  */
 int fim_db_insert(const char* file_path, fim_entry_data *entry);
-
+int fim_db_insert_v2(const char* file_path, fim_entry_data *entry);
 
 /**
  * @brief Update/Replace entry.
