@@ -4,9 +4,20 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <dirent.h>
+#include <pwd.h>
+#include <grp.h>
 
 #define TEST_PATH_START "/home/user/test/file_1"
 #define TEST_PATH_END "/home/user/test/file_4"
+#define PATH_MAX 4096
+
+void fim_path(const char * path);
+void fim_dir(int fd, const char * path);
+void fim_file(int fd, const char * path, struct stat * statbuf);
+#define loop_path(x) (x[0] == '.' && (x[1] == '\0' || (x[1] == '.' && x[2] == '\0')))
 
 int get_all_callback(fim_entry_data *entry) {
     printf("Path: %s\n", entry->path);
@@ -275,7 +286,124 @@ int test_fim_insert() {
     return 0;
 }
 
+
+void fim_path(const char * path) {
+
+    int fd = open(path, O_RDONLY | O_NONBLOCK);
+
+    if (fd == -1) {
+        printf("Cannot open '%s': %s", path, strerror(errno));
+        return;
+    }
+
+    struct stat buf;
+
+    if (fstat(fd, &buf) == -1) {
+        printf("Cannot stat '%s': %s", path, strerror(errno));
+        return;
+    }
+
+    switch (buf.st_mode & S_IFMT) {
+    case S_IFDIR:
+        fim_dir(fd, path);
+        break;
+
+    case S_IFREG:
+        fim_file(fd, path, &buf);
+        break;
+
+    default:
+        printf("Ignoring '%s': not a regular file", path);
+        close(fd);
+    }
+}
+
+void fim_dir(int fd, const char * path) {
+    DIR * dir = fdopendir(fd);
+
+    if (dir == NULL) {
+        printf("Cannot open directory '%s': %s", path, strerror(errno));
+    } else {
+        struct dirent * entry;
+
+        while ((entry = readdir(dir))) {
+            if (!loop_path(entry->d_name)) {
+                char lpath[PATH_MAX];
+                snprintf(lpath, PATH_MAX, "%s%s%s", path, (path[strlen(path) - 1] == '/') ? "" : "/", entry->d_name);
+                //printf("%s\n", lpath);
+                fim_path(lpath);
+                sched_yield();
+            }
+        }
+    }
+
+    closedir(dir);
+}
+
+#define MAX_SIZE 1073741824
+void fim_file(int fd, const char * path, struct stat * statbuf) {
+    char sha256[65];
+
+    fim_entry_data *data = calloc(1, sizeof(fim_entry_data));
+
+
+    /* Owner and group */
+    struct passwd * owner = getpwuid(statbuf->st_uid);
+    struct group * group = getgrgid(statbuf->st_gid);
+
+    data->path = strdup(path);
+    data->size = statbuf->st_size;
+    char str_mode[128] = {0};
+    snprintf(str_mode, 128, "%i", statbuf->st_mode);
+    data->perm = strdup(str_mode);
+    data->attributes = strdup("");
+    char str_uid[128] = {0};
+    snprintf(str_uid, 127, "%i", statbuf->st_uid);
+    data->uid = strdup(str_uid);
+    char str_gid[128] = {0};
+    snprintf(str_gid, 127, "%i", statbuf->st_gid);
+    data->gid = strdup(str_gid);
+    data->user_name = strdup(owner->pw_name?owner->pw_name:"");
+    data->group_name = strdup(group->gr_name?group->gr_name:"");
+    data->mtime = statbuf->st_mtime;
+    data->inode = statbuf->st_ino;
+    data->hash_md5 = strdup("1dd614869481a863afa22765ccb5be36");
+    data->hash_sha1 = strdup("b304095d3a8d81f7adbd1506e8b69a2dffab6b94");
+
+    data->mode = 1;
+    data->last_event = 0;
+    data->entry_type = 0;
+    data->dev = statbuf->st_dev;
+    data->scanned = 0;
+    data->options = 0;
+    data->checksum = strdup("1dd614869481a863afa22765ccb5be36");
+
+
+    /* SHA256 */
+
+    if (statbuf->st_size > 0) {
+        if (statbuf->st_size > MAX_SIZE) {
+            printf("Ignoring '%s' SHA256: file exceeds size limit", path);
+        } else if (file_sha256(fd, sha256) == 0) {
+            data->hash_sha256 = strdup(sha256);
+        } else {
+            printf("Cannot calculate SHA256 sum of '%s'", path);
+        }
+    } else {
+        data->hash_sha256 = strdup("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    }
+
+    print_fim_entry_data_full(data);
+    free_entry_data(data);
+
+    close(fd);
+}
+
+
 int main(int argc, char *argv[]) {
+
+    fim_path("/root/FIM-DB-POC");
+    exit(0);
 
     struct timespec start, end, commit;
 

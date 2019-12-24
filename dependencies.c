@@ -10,6 +10,9 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <grp.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
+#define BUFFER_SIZE 4096
 
 /* COPIADA PARA LA PRUEBA */
 int wdb_create_file(const char *path, const char *source) {
@@ -172,30 +175,41 @@ void free_entry_data(fim_entry_data * data) {
     if (!data) {
         return;
     }
+    if (data->path) {
+        free(data->path);
+    }
     if (data->perm) {
-        os_free(data->perm);
+        free(data->perm);
     }
     if (data->attributes) {
-        os_free(data->attributes);
+        free(data->attributes);
     }
     if (data->uid) {
-#ifdef WIN32
-        LocalFree(data->uid);
-#else
-        os_free(data->uid);
-#endif
+        free(data->uid);
     }
     if (data->gid) {
-        os_free(data->gid);
+        free(data->gid);
     }
     if (data->user_name) {
-        os_free(data->user_name);
+        free(data->user_name);
     }
     if (data->group_name) {
-        os_free(data->group_name);
+        free(data->group_name);
+    }
+    if (data->hash_md5) {
+        free(data->hash_md5);
+    }
+    if (data->hash_sha1) {
+        free(data->hash_sha1);
+    }
+    if (data->hash_sha256) {
+        free(data->hash_sha256);
+    }
+    if (data->checksum) {
+        free(data->checksum);
     }
 
-    os_free(data);
+    free(data);
 }
 
 void gettime(struct timespec *ts) {
@@ -204,4 +218,39 @@ void gettime(struct timespec *ts) {
 
 double time_diff(const struct timespec * b, const struct timespec * a) {
     return b->tv_sec - a->tv_sec + (b->tv_nsec - a->tv_nsec) / 1e9;
+}
+
+
+int file_sha256(int fd, char sum[SHA256_LEN]) {
+    static const char HEX[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+    static EVP_MD_CTX * ctx;
+
+    if (ctx == NULL) {
+        ctx = EVP_MD_CTX_create();
+    }
+
+    EVP_DigestInit_ex(ctx, EVP_sha256(), NULL);
+
+    char buffer[BUFFER_SIZE];
+    ssize_t count;
+
+    while ((count = read(fd, buffer, BUFFER_SIZE)) > 0) {
+        EVP_DigestUpdate(ctx, buffer, count);
+    }
+
+    if (count == -1) {
+        return -1;
+    }
+
+    unsigned char md[SHA256_DIGEST_LENGTH];
+    EVP_DigestFinal_ex(ctx, md, NULL);
+
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+        // sprintf(sum + i * 2, "%02x", md[i]);
+        sum[i * 2] = HEX[md[i] >> 4];
+        sum[i * 2 + 1] = HEX[md[i] & 0xF];
+    }
+
+    sum[SHA256_LEN - 1] = '\0';
+    return 0;
 }
