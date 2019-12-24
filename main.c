@@ -185,7 +185,8 @@ int fill_entries_random(unsigned int num_entries) {
         snprintf(path, 512, "%s%i", DEF_PATH, i);
 
         if (fim_db_insert_v2(path, data)) {
-            printf("Error in fim_db_insert() function.");
+            printf("Error in fim_db_insert() function: %s\n", path);
+            print_fim_entry_data_full(data);
             return DB_ERR;
         }
         free_entry_data(data);
@@ -425,8 +426,10 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
         data->hash_sha256 = strdup("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     }
     //print_fim_entry_data_full(data);
-    if (fim_db_insert_v2(path, data)) {
-        printf("Error in fim_db_insert() function.");
+    if (fim_db_insert(path, data)) {
+        printf("Error in fim_db_insert() function: %s\n", path);
+        print_fim_entry_data_full(data);
+        exit(1);
     }
     free_entry_data(data);
     close(fd);

@@ -31,6 +31,7 @@ typedef enum fdb_stmt {
     FIMDB_STMT_DELETE_PATH_INODE,
     FIMDB_STMT_DISABLE_SCANNED,
     FIMDB_STMT_GET_UNIQUE_FILE,
+    FIMDB_STMT_TEST,
     WDB_STMT_SIZE
 } fdb_stmt;
 

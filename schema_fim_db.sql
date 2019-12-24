@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS entry_path (
     options INTEGER,
     checksum TEXT NOT NULL,
     PRIMARY KEY(path),
-    foreign key (inode_id) references entry_data(rowid) on delete cascade
+    foreign key (inode_id) references entry_data(rowid) on update cascade on delete cascade
 );
 
 CREATE INDEX IF NOT EXISTS path_index ON entry_path (path);
