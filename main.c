@@ -318,6 +318,28 @@ void fim_path(const char * path) {
     }
 }
 
+
+int fim_link(const char * path) {
+    struct stat buf;
+
+    if (lstat(path, &buf) == -1) {
+        return -1;
+    } else if ((buf.st_mode & S_IFMT) == S_IFLNK) {
+        char real[PATH_MAX];
+
+        if (realpath(path, real)) {
+            fim_path(real);
+        } else {
+            return -1;
+        }
+    } else {
+        fim_path(path);
+    }
+
+    return 0;
+}
+
+
 void fim_dir(int fd, const char * path) {
     DIR * dir = fdopendir(fd);
 
@@ -349,7 +371,18 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
 
     /* Owner and group */
     struct passwd * owner = getpwuid(statbuf->st_uid);
+    if (owner) {
+        data->user_name = strdup(owner->pw_name);
+    } else {
+        data->user_name = strdup("unknown");
+    }
+
     struct group * group = getgrgid(statbuf->st_gid);
+    if (owner) {
+        data->group_name = strdup(group->gr_name);
+    } else {
+        data->group_name = strdup("");
+    }
 
     data->path = strdup(path);
     data->size = statbuf->st_size;
@@ -363,8 +396,7 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
     char str_gid[128] = {0};
     snprintf(str_gid, 127, "%i", statbuf->st_gid);
     data->gid = strdup(str_gid);
-    data->user_name = strdup(owner->pw_name?owner->pw_name:"");
-    data->group_name = strdup(group->gr_name?group->gr_name:"");
+
     data->mtime = statbuf->st_mtime;
     data->inode = statbuf->st_ino;
     data->hash_md5 = strdup("1dd614869481a863afa22765ccb5be36");
@@ -404,7 +436,8 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
 int main(int argc, char *argv[]) {
 
     struct timespec start, end, commit;
-
+// bajar nice
+    nice(10);
     //announce_function("fim_db_init");
     if (fim_db_init() == DB_ERR) {
         merror("Could not init the database.");
@@ -421,17 +454,17 @@ int main(int argc, char *argv[]) {
     //announce_function("fill_entries_random");
     gettime(&start);
 
-    fim_path("/bin");
-    fim_path("/boot");
-    fim_path("/etc");
-    fim_path("/lib");
-    fim_path("/lib32");
-    fim_path("/lib64");
-    fim_path("/libx32");
-    fim_path("/opt");
-    fim_path("/root");
-    fim_path("/sbin");
-    fim_path("/usr");
+    //fim_link("/bin");
+    //fim_link("/boot");
+    //fim_link("/etc");
+    //fim_path("/lib");
+    //fim_path("/lib32");
+    //fim_path("/lib64");
+    //fim_path("/libx32");
+    //fim_link("/opt");
+    fim_link("/root");
+    //fim_link("/sbin");
+    //fim_link("/usr");
 
 
     gettime(&end);
@@ -447,6 +480,19 @@ int main(int argc, char *argv[]) {
 
     //printf("%s,%f,%f,%f", argv[1], (double) time_diff(&end, &start), (double) time_diff(&commit, &end), (double) time_diff(&commit, &start));
     printf("%f,%f,%f", (double) time_diff(&end, &start), (double) time_diff(&commit, &end), (double) time_diff(&commit, &start));
+
+    announce_function("fim_db_get_path");
+    fim_entry_data **respx = fim_db_get_path("/root/tiempos.csv");
+
+    if (!respx) {
+        merror("Error in fim_db_get_path() function.");
+        return 1;
+    }
+    for (unsigned i = 0; respx[i]; i++) {
+        print_fim_entry_data(respx[i]);
+        free_entry_data(respx[i]);
+    }
+    free(respx);
 
     exit(0);
 
@@ -469,7 +515,7 @@ int main(int argc, char *argv[]) {
     }
 
     announce_function("fim_db_get_path");
-    fim_entry_data **resp = fim_db_get_path(TEST_PATH_START);
+    fim_entry_data **resp = fim_db_get_path("/root/tiempos.csv");
     unsigned int i;
     if (!resp) {
         merror("Error in fim_db_get_path() function.");
