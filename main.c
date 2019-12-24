@@ -292,14 +292,14 @@ void fim_path(const char * path) {
     int fd = open(path, O_RDONLY | O_NONBLOCK);
 
     if (fd == -1) {
-        printf("Cannot open '%s': %s", path, strerror(errno));
+        printf("Cannot open '%s': %s\n", path, strerror(errno));
         return;
     }
 
     struct stat buf;
 
     if (fstat(fd, &buf) == -1) {
-        printf("Cannot stat '%s': %s", path, strerror(errno));
+        printf("Cannot stat '%s': %s\n", path, strerror(errno));
         return;
     }
 
@@ -313,7 +313,7 @@ void fim_path(const char * path) {
         break;
 
     default:
-        printf("Ignoring '%s': not a regular file", path);
+        printf("Ignoring '%s': not a regular file\n", path);
         close(fd);
     }
 }
@@ -322,7 +322,7 @@ void fim_dir(int fd, const char * path) {
     DIR * dir = fdopendir(fd);
 
     if (dir == NULL) {
-        printf("Cannot open directory '%s': %s", path, strerror(errno));
+        printf("Cannot open directory '%s': %s\n", path, strerror(errno));
     } else {
         struct dirent * entry;
 
@@ -392,18 +392,16 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
     } else {
         data->hash_sha256 = strdup("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     }
-
-    print_fim_entry_data_full(data);
+    //print_fim_entry_data_full(data);
+    if (fim_db_insert_v2(path, data)) {
+        printf("Error in fim_db_insert() function.");
+    }
     free_entry_data(data);
-
     close(fd);
 }
 
 
 int main(int argc, char *argv[]) {
-
-    fim_path("/root/FIM-DB-POC");
-    exit(0);
 
     struct timespec start, end, commit;
 
@@ -413,20 +411,28 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-/*
+
     announce_function("test_fim_insert");
-    if (test_fim_insert()) {
-        merror("Error in test_fim_insert() function.");
-        return 1;
-    }
-*/
+    //if (test_fim_insert()) {
+        //merror("Error in test_fim_insert() function.");
+        //return 1;
+    //}
+
     //announce_function("fill_entries_random");
     gettime(&start);
 
-    if (fill_entries_random(atoi(argv[1]))) {
-        merror("Error in fill_entries_random() function.");
-        return 1;
-    }
+    fim_path("/bin");
+    fim_path("/boot");
+    fim_path("/etc");
+    fim_path("/lib");
+    fim_path("/lib32");
+    fim_path("/lib64");
+    fim_path("/libx32");
+    fim_path("/opt");
+    fim_path("/root");
+    fim_path("/sbin");
+    fim_path("/usr");
+
 
     gettime(&end);
 
@@ -439,7 +445,8 @@ int main(int argc, char *argv[]) {
     stat("fim.db", &st);
     int size = st.st_size;
 
-    printf("%s,%f,%f,%f", argv[1], (double) time_diff(&end, &start), (double) time_diff(&commit, &end), (double) time_diff(&commit, &start));
+    //printf("%s,%f,%f,%f", argv[1], (double) time_diff(&end, &start), (double) time_diff(&commit, &end), (double) time_diff(&commit, &start));
+    printf("%f,%f,%f", (double) time_diff(&end, &start), (double) time_diff(&commit, &end), (double) time_diff(&commit, &start));
 
     exit(0);
 
