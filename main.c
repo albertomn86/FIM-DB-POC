@@ -20,9 +20,9 @@ void fim_file(int fd, const char * path, struct stat * statbuf);
 #define loop_path(x) (x[0] == '.' && (x[1] == '\0' || (x[1] == '.' && x[2] == '\0')))
 
 int get_all_callback(fim_entry_data *entry) {
-    printf("Path: %s\n", entry->path);
+    //printf("Path: %s\n", entry->path);
 
-    // Entry estructor call
+    // Entry destructor call
     return 0;
 }
 
@@ -138,7 +138,7 @@ int test_fim_db_update() {
     os_strdup("!!!", resp->perm);
     free(resp->hash_sha256);
     os_strdup("new_sha256", resp->hash_sha256);
-    resp->scanned = 1;
+    resp->scanned = 0;
     free(resp->checksum);
     os_strdup("====", resp->checksum);
 
@@ -405,7 +405,7 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
     data->last_event = 0;
     data->entry_type = 0;
     data->dev = statbuf->st_dev;
-    data->scanned = 0;
+    data->scanned = 1;
     data->options = 0;
     data->checksum = strdup("1dd614869481a863afa22765ccb5be36");
 
@@ -527,37 +527,79 @@ int main(int argc, char *argv[]) {
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    exit(0);
-
-    announce_function("fim_db_get_all");
-    if (fim_db_get_all(get_all_callback)) {
-        merror("Error in fim_db_get_all() function.");
-        return 1;
-    }
-
-    announce_function("fim_db_get_range");
-    if (fim_db_get_range(TEST_PATH_START, TEST_PATH_END, get_all_callback)) {
-        merror("Error in fim_db_get_range() function.");
-        return 1;
-    }
-
-    announce_function("fim_db_set_all_unscanned");
-    if (fim_db_set_all_unscanned()) {
-        merror("Error in fim_db_set_all_unscanned() function.");
-        return 1;
-    }
-
     announce_function("fim_db_get_not_scanned");
+    gettime(&start);
     if (fim_db_get_not_scanned(get_all_callback)) {
         merror("Error in fim_db_get_not_scanned() function.");
         return 1;
     }
 
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     announce_function("fim_db_delete_unscanned");
+    gettime(&start);
     if (fim_db_delete_unscanned()) {
         merror("Error in fim_db_delete_unscanned() function.");
         return 1;
     }
+
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    announce_function("fim_db_get_not_scanned");
+    gettime(&start);
+    if (fim_db_get_not_scanned(get_all_callback)) {
+        merror("Error in fim_db_get_not_scanned() function.");
+        return 1;
+    }
+
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    announce_function("fim_db_set_all_unscanned");
+    gettime(&start);
+    if (fim_db_set_all_unscanned()) {
+        merror("Error in fim_db_set_all_unscanned() function.");
+        return 1;
+    }
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    announce_function("fim_db_get_all");
+    gettime(&start);
+    if (fim_db_get_all(get_all_callback)) {
+        merror("Error in fim_db_get_all() function.");
+        return 1;
+    }
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    announce_function("fim_db_get_range");
+    gettime(&start);
+    if (fim_db_get_range("/root/wazuh/wodles/oscap/content/cve-debian-8-oval.xml", "/root/wazuh/wodles/oscap/template_xccdf.xsl", get_all_callback)) {
+        merror("Error in fim_db_get_range() function.");
+        return 1;
+    }
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
 
     return 0;
 }
