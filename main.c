@@ -10,7 +10,7 @@
 #include <pwd.h>
 #include <grp.h>
 
-#define TEST_PATH_START "/home/user/test/file_1"
+#define TEST_PATH_START "/root/tiempos.csv"
 #define TEST_PATH_END "/home/user/test/file_4"
 #define PATH_MAX 4096
 
@@ -127,50 +127,48 @@ int print_fim_entry_data(fim_entry_data *entry) {
 }
 
 int test_fim_db_update() {
-    fim_entry_data **resp = fim_db_get_path(TEST_PATH_START);
+    fim_entry_data *resp = fim_db_get_path(TEST_PATH_START);
     if (!resp) {
         return -1;
     }
 
-    int i;
     // Modify the current content
-    for (i = 0; resp && resp[i]; i++) {
-        resp[i]->size +=100;
-        free(resp[i]->perm);
-        os_strdup("!!!", resp[i]->perm);
-        free(resp[i]->hash_sha256);
-        os_strdup("new_sha256", resp[i]->hash_sha256);
-        resp[i]->scanned = 1;
-        free(resp[i]->checksum);
-        os_strdup("====", resp[i]->checksum);
+    resp->size +=100;
+    free(resp->perm);
+    os_strdup("!!!", resp->perm);
+    free(resp->hash_sha256);
+    os_strdup("new_sha256", resp->hash_sha256);
+    resp->scanned = 1;
+    free(resp->checksum);
+    os_strdup("====", resp->checksum);
 
-        // Declaration of intentions
-        printf("New attrs for '%s'\n" \
-                " - Size: %u\n" \
-                " - Perm: %s\n" \
-                " - Sha256: %s\n" \
-                " - Scanned: %u\n" \
-                " - Checksum: %s\n",
-                resp[i]->path, resp[i]->size, resp[i]->perm, resp[i]->hash_sha256, resp[i]->scanned, resp[i]->checksum);
+    // Declaration of intentions
+    printf("New attrs for '%s'\n" \
+            " - Size: %u\n" \
+            " - Perm: %s\n" \
+            " - Sha256: %s\n" \
+            " - Scanned: %u\n" \
+            " - Checksum: %s\n",
+            resp->path, resp->size, resp->perm, resp->hash_sha256, resp->scanned, resp->checksum);
 
-        // Update the database
-        if (fim_db_update(resp[i]->inode, resp[i]->dev, resp[i])) {
-            return DB_ERR;
-        }
-
-        // Confirm the change
-        printf("Database content:\n");
-        fim_entry_data **updated_entry = fim_db_get_path(TEST_PATH_START);
-        int j;
-        for (j = 0; updated_entry && updated_entry[j]; j++) {
-            if (!strcmp(updated_entry[j]->path, resp[i]->path) &&
-                updated_entry[j]->inode == resp[i]->inode &&
-                updated_entry[j]->dev == resp[i]->dev) {
-                print_fim_entry_data_full(updated_entry[j]);
-                break;
-            }
-        }
+    // Update the database
+    if (fim_db_update(resp->inode, resp->dev, resp)) {
+        free_entry_data(resp);
+        return DB_ERR;
     }
+
+    // Confirm the change
+    printf("Database content:\n");
+    fim_entry_data *updated_entry = fim_db_get_path(TEST_PATH_START);
+
+    if (!strcmp(updated_entry->path, resp->path) &&
+        updated_entry->inode == resp->inode &&
+        updated_entry->dev == resp->dev) {
+        print_fim_entry_data_full(updated_entry);
+
+    }
+    free_entry_data(resp);
+    free_entry_data(updated_entry);
 
     return 0;
 }
@@ -320,7 +318,7 @@ void fim_path(const char * path) {
 }
 
 
-int fim_link(const char * path) {
+int fim_scan(const char * path) {
     struct stat buf;
 
     if (lstat(path, &buf) == -1) {
@@ -439,63 +437,95 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
 int main(int argc, char *argv[]) {
 
     struct timespec start, end, commit;
-// bajar nice
+    // bajar nice
     nice(10);
-    //announce_function("fim_db_init");
+
+    announce_function("fim_db_init");
+    gettime(&start);
     if (fim_db_init() == DB_ERR) {
         merror("Could not init the database.");
         return 1;
     }
 
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     announce_function("test_fim_insert");
-    //if (test_fim_insert()) {
-        //merror("Error in test_fim_insert() function.");
-        //return 1;
-    //}
-
-    //announce_function("fill_entries_random");
     gettime(&start);
 
-    //fim_link("/bin");
-    //fim_link("/boot");
-    //fim_link("/etc");
+    //fim_scan("/bin");
+    //fim_scan("/boot");
+    //fim_scan("/etc");
     //fim_path("/lib");
-    //fim_path("/lib32");
-    //fim_path("/lib64");
-    //fim_path("/libx32");
-    //fim_link("/opt");
-    fim_link("/root");
-    //fim_link("/sbin");
-    //fim_link("/usr");
-
+    //fim_scan("/lib32");
+    //fim_scan("/lib64");
+    //fim_scan("/libx32");
+    //fim_scan("/opt");
+    fim_scan("/root");
+    //fim_scan("/sbin");
+    //fim_scan("/usr");
 
     gettime(&end);
 
-    fim_force_commit(); // ~~~~~~~~~~~~~
+    fim_force_commit();
 
-    gettime(&commit);
-    sqlite3_close_v2(test_get_db());
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
 
-    struct stat st;
-    stat("fim.db", &st);
-    int size = st.st_size;
-
-    //printf("%s,%f,%f,%f", argv[1], (double) time_diff(&end, &start), (double) time_diff(&commit, &end), (double) time_diff(&commit, &start));
-    printf("%f,%f,%f", (double) time_diff(&end, &start), (double) time_diff(&commit, &end), (double) time_diff(&commit, &start));
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     announce_function("fim_db_get_path");
-    fim_entry_data **respx = fim_db_get_path("/root/tiempos.csv");
+    gettime(&start);
+    fim_entry_data *respx = fim_db_get_path(TEST_PATH_START);
 
     if (!respx) {
         merror("Error in fim_db_get_path() function.");
         return 1;
     }
-    for (unsigned i = 0; respx[i]; i++) {
-        print_fim_entry_data(respx[i]);
-        free_entry_data(respx[i]);
+    gettime(&end);
+
+    print_fim_entry_data(respx);
+    free_entry_data(respx);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    // sqlite3 fim.db "select dev, inode from entry_data where rowid in (select inode_id from entry_path group by inode_id having count(inode_id) > 2);"
+    announce_function("fim_db_get_inode");
+    gettime(&start);
+    fim_entry_data **resp2 = fim_db_get_inode(26423, 2050);
+    unsigned int j;
+    if (!resp2) {
+        merror("Error in fim_db_get_inode() function.");
+        return 1;
     }
-    free(respx);
+
+    gettime(&end);
+
+    for (j = 0; resp2[j]; j++) {
+        print_fim_entry_data(resp2[j]);
+        free_entry_data(resp2[j]);
+    }
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    announce_function("fim_db_update");
+    gettime(&start);
+    if (test_fim_db_update()) {
+        merror("Error in fim_db_update() function.");
+        return 1;
+    }
+
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     exit(0);
 
@@ -517,43 +547,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    announce_function("fim_db_get_path");
-    fim_entry_data **resp = fim_db_get_path("/root/tiempos.csv");
-    unsigned int i;
-    if (!resp) {
-        merror("Error in fim_db_get_path() function.");
-        return 1;
-    }
-    for (i = 0; resp[i]; i++) {
-        print_fim_entry_data(resp[i]);
-        free_entry_data(resp[i]);
-    }
-    free(resp);
-
-    announce_function("fim_db_update");
-    if (test_fim_db_update()) {
-        merror("Error in fim_db_update() function.");
-        return 1;
-    }
-
     announce_function("fim_db_get_not_scanned");
     if (fim_db_get_not_scanned(get_all_callback)) {
         merror("Error in fim_db_get_not_scanned() function.");
         return 1;
     }
-
-    announce_function("fim_db_get_inode");
-    fim_entry_data **resp2 = fim_db_get_inode(1234, 1);
-    unsigned int j;
-    if (!resp2) {
-        merror("Error in fim_db_get_inode() function.");
-        return 1;
-    }
-    for (j = 0; resp2[j]; j++) {
-        print_fim_entry_data(resp2[j]);
-        free_entry_data(resp2[j]);
-    }
-    free(resp2);
 
     announce_function("fim_db_delete_unscanned");
     if (fim_db_delete_unscanned()) {

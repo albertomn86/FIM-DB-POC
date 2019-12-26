@@ -32,6 +32,7 @@ typedef enum fdb_stmt {
     FIMDB_STMT_DISABLE_SCANNED,
     FIMDB_STMT_GET_UNIQUE_FILE,
     FIMDB_STMT_TEST,
+    FIMDB_STMT_REFERENCE,
     WDB_STMT_SIZE
 } fdb_stmt;
 
@@ -116,7 +117,7 @@ fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned
  * @param inode
  * @return fim_entry_data
  */
-fim_entry_data ** fim_db_get_path(const char * file_path);
+fim_entry_data * fim_db_get_path(const char * file_path);
 
 
 /**
