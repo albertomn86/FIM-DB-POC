@@ -9,6 +9,7 @@
 #include <dirent.h>
 #include <pwd.h>
 #include <grp.h>
+#include <sched.h>
 
 #define TEST_PATH_START "/root/tiempos.csv"
 #define TEST_PATH_END "/home/user/test/file_4"
@@ -154,7 +155,7 @@ int test_fim_db_update() {
     // Update the database
     if (fim_db_update(resp->inode, resp->dev, resp)) {
         free_entry_data(resp);
-        return DB_ERR;
+        return FIMDB_ERR;
     }
 
     // Confirm the change
@@ -182,10 +183,10 @@ int fill_entries_random(unsigned int num_entries) {
         char * path = calloc(512, sizeof(char));
         snprintf(path, 512, "%s%i", DEF_PATH, i);
 
-        if (fim_db_insert_v2(path, data)) {
+        if (fim_db_insert(path, data)) {
             printf("Error in fim_db_insert() function: %s\n", path);
             print_fim_entry_data_full(data);
-            return DB_ERR;
+            return FIMDB_ERR;
         }
         free_entry_data(data);
         free(path);
@@ -235,7 +236,7 @@ int process_sample_entries(int (*callback)(const char *path, fim_entry_data *dat
         print_fim_entry_data(data);
         if (callback(path, data)) {
             printf("Error in process_sample_entries() function. PATH: %s\n", path);
-            return DB_ERR;
+            return FIMDB_ERR;
         }
         free_entry_data(data);
     }
@@ -267,7 +268,7 @@ int fim_verify_sample_entries(const char *file_path, fim_entry_data *entry) {
         strcmp(entry->hash_sha1, saved_file->hash_sha1) ||
         strcmp(entry->hash_sha256, saved_file->hash_sha256) ||
         strcmp(entry->checksum, saved_file->checksum)) {
-        return DB_ERR;
+        return FIMDB_ERR;
     }
 
     return 0;
@@ -275,11 +276,11 @@ int fim_verify_sample_entries(const char *file_path, fim_entry_data *entry) {
 
 int test_fim_insert() {
     if (process_sample_entries(fim_db_insert)) {
-        return DB_ERR;
+        return FIMDB_ERR;
     }
 
     if (process_sample_entries(fim_verify_sample_entries)) {
-        return DB_ERR;
+        return FIMDB_ERR;
     }
 
     return 0;
@@ -442,7 +443,7 @@ int main(int argc, char *argv[]) {
 
     announce_function("fim_db_init");
     gettime(&start);
-    if (fim_db_init() == DB_ERR) {
+    if (fim_db_init() == FIMDB_ERR) {
         merror("Could not init the database.");
         return 1;
     }

@@ -39,5 +39,3 @@ CREATE TABLE IF NOT EXISTS entry_data (
 );
 
 CREATE INDEX IF NOT EXISTS dev_inode_index ON entry_data (dev, inode);
-
-PRAGMA foreign_keys = ON;
