@@ -59,7 +59,7 @@ int wdb_create_file(const char *path, const char *source, const bool MEM, sqlite
 
     if (MEM == true) {
         *fim_db = db;
-        return 0;         
+        return 0;
     }
 
     sqlite3_close_v2(db);
@@ -250,7 +250,8 @@ int file_sha256(int fd, char sum[SHA256_LEN]) {
     unsigned char md[SHA256_DIGEST_LENGTH];
     EVP_DigestFinal_ex(ctx, md, NULL);
 
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+    unsigned int i;
+    for (i = 0; i < SHA256_DIGEST_LENGTH; i++) {
         // sprintf(sum + i * 2, "%02x", md[i]);
         sum[i * 2] = HEX[md[i] >> 4];
         sum[i * 2 + 1] = HEX[md[i] & 0xF];

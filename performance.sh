@@ -5,7 +5,7 @@ PROG="fim_db"
 dt=$(date '+%d/%m/%Y %H:%M:%S')
 echo -ne "\e[31m$dt - INFO: "$PROG" started.\e[39m\n"
 START_TIME=$(date +%s)
-./$PROG > /dev/null &
+./$PROG mem /root/test 1 /root/test/file_01000.txt > output.txt &
 
 LAST_CPU=100
 MAX_CPU=0
