@@ -2,6 +2,8 @@
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sqlite3.h>
+#include <stdbool.h>
 
 #define debug_level 0
 #define max_size 20000
@@ -34,7 +36,7 @@ typedef struct fim_entry_data {
 } fim_entry_data;
 
 int w_is_file(const char * const file);
-int wdb_create_file(const char *path, const char *source);
+int wdb_create_file(const char *path, const char *source, const bool type, sqlite3 ** fim_db);
 void mdebug1(const char *msg, ...);
 void mdebug2(const char *msg, ...);
 void merror(const char *msg, ...);

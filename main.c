@@ -435,15 +435,15 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
 }
 
 
-int main(int argc, char *argv[]) {
+int basic_test(const bool type, const char * folder) {
 
     struct timespec start, end, commit;
-    // bajar nice
-    nice(10);
-
+    
     announce_function("fim_db_init");
+
     gettime(&start);
-    if (fim_db_init() == FIMDB_ERR) {
+
+    if (fim_db_init(type) == FIMDB_ERR) {
         merror("Could not init the database.");
         return 1;
     }
@@ -457,34 +457,50 @@ int main(int argc, char *argv[]) {
     announce_function("test_fim_insert");
     gettime(&start);
 
-    //fim_scan("/bin");
-    //fim_scan("/boot");
-    //fim_scan("/etc");
-    //fim_path("/lib");
-    //fim_scan("/lib32");
-    //fim_scan("/lib64");
-    //fim_scan("/libx32");
-    //fim_scan("/opt");
-    fim_scan("/root");
-    //fim_scan("/sbin");
-    //fim_scan("/usr");
+    fim_scan(folder);
 
     gettime(&end);
 
     fim_force_commit();
 
     printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
+}
+
+
+int main(int argc, char *argv[]) {
+
+    if (argc != 4) {
+        fprintf(stderr, "\n./fim_db <type> <folder> <loop-iterations>\n\n"
+                        "\t- types{mem|disc}\n");
+        return 1;
+    }
+
+    nice(10);
+
+    bool type     = (!strcmp("mem", argv[1]))? true : false;
+    char * folder = argv[2];
+    int    loop   = atoi(argv[3]);
+
+    basic_test(type, folder);
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     announce_function("fim_db_get_path");
-    gettime(&start);
-    fim_entry_data *respx = fim_db_get_path(TEST_PATH_START);
+    
+    int i;
+    struct timespec start, end, commit;
+    fim_entry_data *respx = NULL;
 
-    if (!respx) {
-        merror("Error in fim_db_get_path() function.");
-        return 1;
+    gettime(&start);
+
+    for (i = 0; i < loop; i++) {
+        respx = fim_db_get_path(TEST_PATH_START);
+        if (!respx) {
+            merror("Error in fim_db_get_path() function.");
+            return 1;
+        }
     }
+
     gettime(&end);
 
     print_fim_entry_data(respx);
@@ -493,114 +509,4 @@ int main(int argc, char *argv[]) {
     printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
 
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    // sqlite3 fim.db "select dev, inode from entry_data where rowid in (select inode_id from entry_path group by inode_id having count(inode_id) > 2);"
-    announce_function("fim_db_get_inode");
-    gettime(&start);
-    fim_entry_data **resp2 = fim_db_get_inode(26423, 2050);
-    unsigned int j;
-    if (!resp2) {
-        merror("Error in fim_db_get_inode() function.");
-        return 1;
-    }
-
-    gettime(&end);
-
-    for (j = 0; resp2[j]; j++) {
-        print_fim_entry_data(resp2[j]);
-        free_entry_data(resp2[j]);
-    }
-
-    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
-
-    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    announce_function("fim_db_update");
-    gettime(&start);
-    if (test_fim_db_update()) {
-        merror("Error in fim_db_update() function.");
-        return 1;
-    }
-
-    gettime(&end);
-
-    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
-
-    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    announce_function("fim_db_get_not_scanned");
-    gettime(&start);
-    if (fim_db_get_not_scanned(get_all_callback)) {
-        merror("Error in fim_db_get_not_scanned() function.");
-        return 1;
-    }
-
-    gettime(&end);
-
-    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
-
-    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    announce_function("fim_db_delete_unscanned");
-    gettime(&start);
-    if (fim_db_delete_unscanned()) {
-        merror("Error in fim_db_delete_unscanned() function.");
-        return 1;
-    }
-
-    gettime(&end);
-
-    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
-
-    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    announce_function("fim_db_get_not_scanned");
-    gettime(&start);
-    if (fim_db_get_not_scanned(get_all_callback)) {
-        merror("Error in fim_db_get_not_scanned() function.");
-        return 1;
-    }
-
-    gettime(&end);
-
-    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
-
-    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    announce_function("fim_db_set_all_unscanned");
-    gettime(&start);
-    if (fim_db_set_all_unscanned()) {
-        merror("Error in fim_db_set_all_unscanned() function.");
-        return 1;
-    }
-    gettime(&end);
-
-    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
-
-    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    announce_function("fim_db_get_all");
-    gettime(&start);
-    if (fim_db_get_all(get_all_callback)) {
-        merror("Error in fim_db_get_all() function.");
-        return 1;
-    }
-    gettime(&end);
-
-    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
-
-    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    announce_function("fim_db_get_range");
-    gettime(&start);
-    if (fim_db_get_range("/root/wazuh/wodles/oscap/content/cve-debian-8-oval.xml", "/root/wazuh/wodles/oscap/template_xccdf.xsl", get_all_callback)) {
-        merror("Error in fim_db_get_range() function.");
-        return 1;
-    }
-    gettime(&end);
-
-    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
-
-
-    return 0;
 }

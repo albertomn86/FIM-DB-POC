@@ -15,7 +15,7 @@
 #define BUFFER_SIZE 4096
 
 /* COPIADA PARA LA PRUEBA */
-int wdb_create_file(const char *path, const char *source) {
+int wdb_create_file(const char *path, const char *source, const bool MEM, sqlite3 **fim_db) {
     const char *ROOT = "root";
     const char *GROUPGLOBAL = "root";
     const char *sql;
@@ -55,6 +55,11 @@ int wdb_create_file(const char *path, const char *source) {
         }
 
         sqlite3_finalize(stmt);
+    }
+
+    if (MEM == true) {
+        *fim_db = db;
+        return 0;         
     }
 
     sqlite3_close_v2(db);
