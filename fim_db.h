@@ -1,6 +1,6 @@
 #include "dependencies.h"
-#include <sqlite3.h>
 
+#define FIM_DB_MEM ":memory:"
 #define FIM_DB_PATH "fim.db"
 
 #define FIMDB_OK   0 // Successful result.
@@ -50,7 +50,7 @@ typedef struct fdb_t {
  *
  * @return FIMDB_OK on success, FIMDB_ERR otherwise.
  */
-int fim_db_init(void);
+int fim_db_init(const bool type);
 
 
 /**
