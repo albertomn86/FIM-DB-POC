@@ -659,12 +659,12 @@ int main(int argc, char *argv[]) {
                 merror("Error in fim_db_get_path() function.");
                 return 1;
             }
+            free_entry_data(respx);
         }
 
         gettime(&end);
 
-        print_fim_entry_data(respx);
-        free_entry_data(respx);
+        //print_fim_entry_data(respx);
 
         printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
     }
