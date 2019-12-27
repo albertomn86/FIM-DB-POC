@@ -434,12 +434,8 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
     close(fd);
 }
 
-
-int main(int argc, char *argv[]) {
-
+int basic_test() {
     struct timespec start, end, commit;
-    // bajar nice
-    nice(10);
 
     announce_function("fim_db_init");
     gettime(&start);
@@ -603,4 +599,12 @@ int main(int argc, char *argv[]) {
 
 
     return 0;
+}
+
+int main(int argc, char *argv[]) {
+
+    // Set nice
+    nice(10);
+
+    return basic_test();
 }
