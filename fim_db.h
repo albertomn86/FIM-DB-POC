@@ -108,7 +108,7 @@ int fim_db_remove_inode(const unsigned long int inode, const unsigned long int d
  * @param dev Device
  * @return List of fim_entry_data.
  */
-fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned long int dev);
+fim_entry * fim_db_get_inode(const unsigned long int inode, const unsigned long int dev);
 
 
 /**
@@ -117,7 +117,7 @@ fim_entry_data ** fim_db_get_inode(const unsigned long int inode, const unsigned
  * @param file_path File path.
  * @return FIM entry struct.
  */
-fim_entry_data * fim_db_get_path(const char * file_path);
+fim_entry * fim_db_get_path(const char * file_path);
 
 
 /**
@@ -128,7 +128,7 @@ fim_entry_data * fim_db_get_path(const char * file_path);
  * @param dev Device ID.
  * @return FIM entry struct.
  */
-fim_entry_data * fim_db_get_unique_file(const char * file_path, const unsigned long int inode, const unsigned long int dev);
+fim_entry * fim_db_get_unique_file(const char * file_path, const unsigned long int inode, const unsigned long int dev);
 
 
 /**
@@ -136,20 +136,22 @@ fim_entry_data * fim_db_get_unique_file(const char * file_path, const unsigned l
  *
  * @param start Starting path.
  * @param end Last included path.
- * @param callback Callback function (fim_checksum_update, fim_file_report).
+ * @param callback Callback function.
+ * @param arg Callback argument.
  * @return FIMDB_OK on success, FIMDB_ERR otherwise.
  */
-int fim_db_get_range(const char * start, const char * end, int (*callback)(fim_entry_data *));
+int fim_db_get_range(const char * start, const char * end, void (*callback)(fim_entry *, void *), void * arg);
 
 
 /**
  * @brief Get all the paths in the DB.
  * This function will return a list with the paths in ascending order.
  *
- * @param callback Callback function (fim_checksum_update, fim_file_report).
+ * @param callback Callback function.
+ * @param arg Callback argument.
  * @return FIMDB_OK on success, FIMDB_ERR otherwise.
  */
-int fim_db_get_all(int (*callback)(fim_entry_data *));
+int fim_db_get_all(void (*callback)(fim_entry *, void *), void * arg);
 
 
 /**
@@ -172,9 +174,10 @@ int fim_db_delete_unscanned(void);
  * @brief Get all files not scanned.
  *
  * @param callback Callback function (fim_report_deleted).
+ * @param arg Callback argument.
  * @return FIMDB_OK on success, FIMDB_ERR otherwise.
  */
-int fim_db_get_not_scanned(int (*callback)(fim_entry_data *));
+int fim_db_get_not_scanned(void (*callback)(fim_entry *, void *), void * arg);
 
 
 /**

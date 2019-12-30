@@ -110,6 +110,25 @@ int w_is_file(const char * const file)
     return (0);
 }
 
+/* Add a string to an array */
+char **os_AddStrArray(const char *str, char **array)
+{
+    size_t i = 0;
+    char **ret = NULL;
+    if (array) {
+        while (array[i]) {
+            i++;
+        }
+    }
+
+    os_realloc(array, (i + 2)*sizeof(char *), ret);
+    os_strdup(str, ret[i]);
+    ret[i + 1] = NULL;
+
+    return (ret);
+}
+
+
 void mdebug1(const char *msg, ...) {
     if (debug_level >= 1) {
         va_list ap;
@@ -180,41 +199,35 @@ void free_entry_data(fim_entry_data * data) {
     if (!data) {
         return;
     }
-    if (data->path) {
-        free(data->path);
-    }
     if (data->perm) {
-        free(data->perm);
+        os_free(data->perm);
     }
     if (data->attributes) {
-        free(data->attributes);
+        os_free(data->attributes);
     }
     if (data->uid) {
-        free(data->uid);
+        os_free(data->uid);
     }
     if (data->gid) {
-        free(data->gid);
+        os_free(data->gid);
     }
     if (data->user_name) {
-        free(data->user_name);
+        os_free(data->user_name);
     }
     if (data->group_name) {
-        free(data->group_name);
-    }
-    if (data->hash_md5) {
-        free(data->hash_md5);
-    }
-    if (data->hash_sha1) {
-        free(data->hash_sha1);
-    }
-    if (data->hash_sha256) {
-        free(data->hash_sha256);
-    }
-    if (data->checksum) {
-        free(data->checksum);
+        os_free(data->group_name);
     }
 
-    free(data);
+    os_free(data);
+}
+
+void free_entry(fim_entry * entry) {
+    if (entry) {
+        w_FreeArray(entry->path);
+        free_entry_data(entry->data);
+        free(entry);
+    }
+
 }
 
 void gettime(struct timespec *ts) {

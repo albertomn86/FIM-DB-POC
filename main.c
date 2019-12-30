@@ -10,6 +10,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <sched.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
 
 #define TEST_PATH_START "/root/tiempos.csv"
 #define TEST_PATH_END "/home/user/test/file_4"
@@ -20,15 +22,21 @@ void fim_dir(int fd, const char * path);
 void fim_file(int fd, const char * path, struct stat * statbuf);
 #define loop_path(x) (x[0] == '.' && (x[1] == '\0' || (x[1] == '.' && x[2] == '\0')))
 
-int get_all_callback(fim_entry_data *entry) {
+
+void get_all_callback(fim_entry *entry, void * arg) {
     //printf("Path: %s\n", entry->path);
 
     // Entry destructor call
-    return 0;
+    return;
+}
+
+void checksum_callback(fim_entry *entry, void * arg) {
+    EVP_MD_CTX * ctx = arg;
+    EVP_DigestUpdate(ctx, entry->data->checksum, strlen(entry->data->checksum));
+    return;
 }
 
 static fim_entry_data *fill_entry_struct(
-    const char * path,
     unsigned int size,
     const char * perm,
     const char * attributes,
@@ -43,14 +51,13 @@ static fim_entry_data *fill_entry_struct(
     const char * hash_sha256,
     int mode,
     time_t last_event,
-    int entry_type,
+    fim_entry_type entry_type,
     unsigned long int dev,
     unsigned int scanned,
     int options,
     const char * checksum
 ) {
     fim_entry_data *data = calloc(1, sizeof(fim_entry_data));
-    data->path = strdup(path);
     data->size = size;
     data->perm = strdup(perm);
     data->attributes = strdup(attributes);
@@ -60,16 +67,16 @@ static fim_entry_data *fill_entry_struct(
     data->group_name = strdup(group_name);;
     data->mtime = mtime;
     data->inode = inode;
-    data->hash_md5 = strdup(hash_md5);
-    data->hash_sha1 = strdup(hash_sha1);
-    data->hash_sha256 = strdup(hash_sha256);
+    strncpy(data->hash_md5, hash_md5, sizeof(os_md5) - 1);
+    strncpy(data->hash_sha1, hash_sha1, sizeof(hash_sha1) - 1);
+    strncpy(data->hash_sha256, hash_sha256, sizeof(hash_sha256) - 1);
     data->mode = mode;
     data->last_event = last_event;
     data->entry_type = entry_type;
     data->dev = dev;
     data->scanned = scanned;
     data->options = options;
-    data->checksum = strdup(checksum);
+    strncpy(data->checksum, checksum, sizeof(hash_sha1) - 1);
     return data;
 }
 
@@ -77,71 +84,73 @@ void announce_function(char *function) {
     printf("\n***Testing %s***\n", function);
 }
 
-int print_fim_entry_data_full(fim_entry_data *entry) {
+int print_fim_entry_data_full(fim_entry *entry) {
+    unsigned int i;
+    for (i = 0; entry->path[i]; i++) {
+        printf("PATH: %s\n", entry->path[i]);
 
-    printf("PATH: %s\n", entry->path);
-    printf("SIZE: %i\n", entry->size);
-    printf("PERM: %s\n", entry->perm);
-    printf("ATTRB: %s\n", entry->attributes);
-    printf("UID: %s\n", entry->uid);
-    printf("GID: %s\n", entry->gid);
-    printf("UNAME: %s\n", entry->user_name);
-    printf("GNAME: %s\n", entry->group_name);
-    printf("MTIME: %i\n", entry->mtime);
-    printf("INODE: %lu\n", entry->inode);
-    printf("MD5: %s\n", entry->hash_md5);
-    printf("SHA1: %s\n", entry->hash_sha1);
-    printf("SHA256: %s\n", entry->hash_sha256);
-    printf("MODE: %i\n", entry->mode);
-    printf("LAST: %lu\n", entry->last_event);
-    printf("ENTRY: %i\n", entry->entry_type);
-    printf("DEV: %lu\n", entry->dev);
-    printf("SCANNED: %i\n", entry->scanned);
-    printf("OPTIONS: %i\n", entry->options);
-    printf("CHECKSUM: %s\n", entry->checksum);
-
+        printf("SIZE: %i\n", entry->data->size);
+        printf("PERM: %s\n", entry->data->perm);
+        printf("ATTRB: %s\n", entry->data->attributes);
+        printf("UID: %s\n", entry->data->uid);
+        printf("GID: %s\n", entry->data->gid);
+        printf("UNAME: %s\n", entry->data->user_name);
+        printf("GNAME: %s\n", entry->data->group_name);
+        printf("MTIME: %i\n", entry->data->mtime);
+        printf("INODE: %lu\n", entry->data->inode);
+        printf("MD5: %s\n", entry->data->hash_md5);
+        printf("SHA1: %s\n", entry->data->hash_sha1);
+        printf("SHA256: %s\n", entry->data->hash_sha256);
+        printf("MODE: %i\n", entry->data->mode);
+        printf("LAST: %lu\n", entry->data->last_event);
+        printf("ENTRY: %i\n", entry->data->entry_type);
+        printf("DEV: %lu\n", entry->data->dev);
+        printf("SCANNED: %i\n", entry->data->scanned);
+        printf("OPTIONS: %i\n", entry->data->options);
+        printf("CHECKSUM: %s\n", entry->data->checksum);
+    }
 }
 
-int print_fim_entry_data(fim_entry_data *entry) {
+int print_fim_entry_data(fim_entry *entry) {
+    unsigned int i;
+    for (i = 0; entry->path[i]; i++) {
+        printf("%s", entry->path[i]);
 
-    printf("%s|", entry->path ? entry->path : "" );
-    printf("%i|", entry->size);
-    printf("%s|", entry->perm ? entry->perm : "" );
-    printf("%s|", entry->attributes ? entry->attributes : "" );
-    printf("%s|", entry->uid ?  entry->uid : "" );
-    printf("%s|", entry->gid ?  entry->gid : "" );
-    printf("%s|", entry->user_name ? entry->user_name : "" );
-    printf("%s|", entry->group_name ? entry->group_name : "" );
-    printf("%i|", entry->mtime);
-    printf("%lu|", entry->inode);
-    printf("%s|", entry->hash_md5 ? entry->hash_md5 : "" );
-    printf("%s|", entry->hash_sha1 ? entry->hash_sha1 : "" );
-    printf("%s|", entry->hash_sha256 ? entry->hash_sha256 : "" );
-    printf("%i|", entry->mode);
-    printf("%lu|", entry->last_event);
-    printf("%i|", entry->entry_type);
-    printf("%lu|", entry->dev);
-    printf("%i|", entry->scanned);
-    printf("%i|", entry->options );
-    printf("%s\n", entry->checksum ? entry->checksum : "" );
-
+        printf("%i|", entry->data->size);
+        printf("%s|", entry->data->perm ? entry->data->perm : "" );
+        printf("%s|", entry->data->attributes ? entry->data->attributes : "" );
+        printf("%s|", entry->data->uid ?  entry->data->uid : "" );
+        printf("%s|", entry->data->gid ?  entry->data->gid : "" );
+        printf("%s|", entry->data->user_name ? entry->data->user_name : "" );
+        printf("%s|", entry->data->group_name ? entry->data->group_name : "" );
+        printf("%i|", entry->data->mtime);
+        printf("%lu|", entry->data->inode);
+        printf("%s|", entry->data->hash_md5);
+        printf("%s|", entry->data->hash_sha1);
+        printf("%s|", entry->data->hash_sha256);
+        printf("%i|", entry->data->mode);
+        printf("%lu|", entry->data->last_event);
+        printf("%i|", entry->data->entry_type);
+        printf("%lu|", entry->data->dev);
+        printf("%i|", entry->data->scanned);
+        printf("%i|", entry->data->options );
+        printf("%s\n", entry->data->checksum);
+    }
 }
 
 int test_fim_db_update() {
-    fim_entry_data *resp = fim_db_get_path(TEST_PATH_START);
+    fim_entry *resp = fim_db_get_path(TEST_PATH_START);
     if (!resp) {
         return -1;
     }
 
     // Modify the current content
-    resp->size +=100;
-    free(resp->perm);
-    os_strdup("!!!", resp->perm);
-    free(resp->hash_sha256);
-    os_strdup("new_sha256", resp->hash_sha256);
-    resp->scanned = 0;
-    free(resp->checksum);
-    os_strdup("====", resp->checksum);
+    resp->data->size +=100;
+    free(resp->data->perm);
+    os_strdup("!!!", resp->data->perm);
+    strncpy(resp->data->hash_sha256, "new_sha256", sizeof(os_sha1) - 1);
+    resp->data->scanned = 0;
+    strncpy(resp->data->checksum, "new_checksum", sizeof(os_sha1) - 1);
 
     // Declaration of intentions
     printf("New attrs for '%s'\n" \
@@ -150,30 +159,31 @@ int test_fim_db_update() {
             " - Sha256: %s\n" \
             " - Scanned: %u\n" \
             " - Checksum: %s\n",
-            resp->path, resp->size, resp->perm, resp->hash_sha256, resp->scanned, resp->checksum);
+            resp->path[0], resp->data->size, resp->data->perm, resp->data->hash_sha256, resp->data->scanned, resp->data->checksum);
 
     // Update the database
-    if (fim_db_update(resp->inode, resp->dev, resp)) {
-        free_entry_data(resp);
+    if (fim_db_update(resp->data->inode, resp->data->dev, resp->data)) {
+        free_entry(resp);
         return FIMDB_ERR;
     }
 
     // Confirm the change
     printf("Database content:\n");
-    fim_entry_data *updated_entry = fim_db_get_path(TEST_PATH_START);
+    fim_entry *updated_entry = fim_db_get_path(TEST_PATH_START);
 
-    if (!strcmp(updated_entry->path, resp->path) &&
-        updated_entry->inode == resp->inode &&
-        updated_entry->dev == resp->dev) {
+    if (!strcmp(updated_entry->path[0], resp->path[0]) &&
+        updated_entry->data->inode == resp->data->inode &&
+        updated_entry->data->dev == resp->data->dev) {
         print_fim_entry_data_full(updated_entry);
 
     }
-    free_entry_data(resp);
-    free_entry_data(updated_entry);
+    free_entry(resp);
+    free_entry(updated_entry);
 
     return 0;
 }
 
+/*
 #define DEF_PATH "/home/user/test/file_"
 int fill_entries_random(unsigned int num_entries) {
 
@@ -194,7 +204,9 @@ int fill_entries_random(unsigned int num_entries) {
 
     return 0;
 }
+*/
 
+/*
 int process_sample_entries(int (*callback)(const char *path, fim_entry_data *data)) {
     FILE *fp;
 
@@ -244,36 +256,41 @@ int process_sample_entries(int (*callback)(const char *path, fim_entry_data *dat
     fclose(fp);
     return 0;
 }
+*/
 
 int fim_verify_sample_entries(const char *file_path, fim_entry_data *entry) {
-   fim_entry_data *saved_file = fim_db_get_unique_file(file_path, entry->inode, entry->dev);
+   fim_entry *saved_file = fim_db_get_unique_file(file_path, entry->inode, entry->dev);
 
-    if (!saved_file ||
-        entry->size != saved_file->size ||
-        entry->mtime != saved_file->mtime ||
-        entry->inode != saved_file->inode ||
-        entry->mode != saved_file->mode ||
-        entry->last_event != saved_file->last_event ||
-        entry->entry_type != saved_file->entry_type ||
-        entry->dev != saved_file->dev ||
-        entry->scanned != saved_file->scanned ||
-        entry->options != saved_file->options ||
-        strcmp(entry->perm, saved_file->perm) ||
-        strcmp(entry->attributes, saved_file->attributes) ||
-        strcmp(entry->uid, saved_file->uid) ||
-        strcmp(entry->gid, saved_file->gid) ||
-        strcmp(entry->user_name, saved_file->user_name) ||
-        strcmp(entry->group_name, saved_file->group_name) ||
-        strcmp(entry->hash_md5, saved_file->hash_md5) ||
-        strcmp(entry->hash_sha1, saved_file->hash_sha1) ||
-        strcmp(entry->hash_sha256, saved_file->hash_sha256) ||
-        strcmp(entry->checksum, saved_file->checksum)) {
+    if (!saved_file) {
+        return FIMDB_ERR;
+    }
+    if (entry->size != saved_file->data->size ||
+        entry->mtime != saved_file->data->mtime ||
+        entry->inode != saved_file->data->inode ||
+        entry->mode != saved_file->data->mode ||
+        entry->last_event != saved_file->data->last_event ||
+        entry->entry_type != saved_file->data->entry_type ||
+        entry->dev != saved_file->data->dev ||
+        entry->scanned != saved_file->data->scanned ||
+        entry->options != saved_file->data->options ||
+        strcmp(entry->perm, saved_file->data->perm) ||
+        strcmp(entry->attributes, saved_file->data->attributes) ||
+        strcmp(entry->uid, saved_file->data->uid) ||
+        strcmp(entry->gid, saved_file->data->gid) ||
+        strcmp(entry->user_name, saved_file->data->user_name) ||
+        strcmp(entry->group_name, saved_file->data->group_name) ||
+        strcmp(entry->hash_md5, saved_file->data->hash_md5) ||
+        strcmp(entry->hash_sha1, saved_file->data->hash_sha1) ||
+        strcmp(entry->hash_sha256, saved_file->data->hash_sha256) ||
+        strcmp(entry->checksum, saved_file->data->checksum)) {
+        free_entry(saved_file);
         return FIMDB_ERR;
     }
 
+    free_entry(saved_file);
     return 0;
 }
-
+/*
 int test_fim_insert() {
     if (process_sample_entries(fim_db_insert)) {
         return FIMDB_ERR;
@@ -284,7 +301,7 @@ int test_fim_insert() {
     }
 
     return 0;
-}
+}*/
 
 
 void fim_path(const char * path) {
@@ -365,7 +382,6 @@ void fim_dir(int fd, const char * path) {
 #define MAX_SIZE 1073741824
 void fim_file(int fd, const char * path, struct stat * statbuf) {
     char sha256[65];
-
     fim_entry_data *data = calloc(1, sizeof(fim_entry_data));
 
 
@@ -384,7 +400,6 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
         data->group_name = strdup("");
     }
 
-    data->path = strdup(path);
     data->size = statbuf->st_size;
     char str_mode[128] = {0};
     snprintf(str_mode, 128, "%i", statbuf->st_mode);
@@ -399,17 +414,16 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
 
     data->mtime = statbuf->st_mtime;
     data->inode = statbuf->st_ino;
-    data->hash_md5 = strdup("1dd614869481a863afa22765ccb5be36");
-    data->hash_sha1 = strdup("b304095d3a8d81f7adbd1506e8b69a2dffab6b94");
+    strncpy(data->hash_md5, "1dd614869481a863afa22765ccb5be36", sizeof(os_md5) - 1);
+    strncpy(data->hash_sha1, "b304095d3a8d81f7adbd1506e8b69a2dffab6b94", sizeof(os_sha1) - 1);
 
-    data->mode = 1;
+    data->mode = FIM_SCHEDULED;
     data->last_event = 0;
     data->entry_type = 0;
     data->dev = statbuf->st_dev;
     data->scanned = 1;
     data->options = 0;
-    data->checksum = strdup("1dd614869481a863afa22765ccb5be36");
-
+    strncpy(data->checksum, "b304095d3a8d81f7adbd1506e8b69a2dffab6b94", sizeof(os_sha1) - 1);
 
     /* SHA256 */
 
@@ -417,17 +431,17 @@ void fim_file(int fd, const char * path, struct stat * statbuf) {
         if (statbuf->st_size > MAX_SIZE) {
             printf("Ignoring '%s' SHA256: file exceeds size limit", path);
         } else if (file_sha256(fd, sha256) == 0) {
-            data->hash_sha256 = strdup(sha256);
+            strncpy(data->hash_sha256, sha256, sizeof(os_sha256) - 1);
         } else {
             printf("Cannot calculate SHA256 sum of '%s'", path);
         }
     } else {
-        data->hash_sha256 = strdup("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        strncpy(data->hash_sha256, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", sizeof(os_sha256) - 1);
     }
     //print_fim_entry_data_full(data);
     if (fim_db_insert(path, data)) {
         printf("Error in fim_db_insert() function: %s\n", path);
-        print_fim_entry_data_full(data);
+        //print_fim_entry_data_full(data);
         exit(1);
     }
     free_entry_data(data);
@@ -479,7 +493,7 @@ int basic_test() {
 
     announce_function("fim_db_get_path");
     gettime(&start);
-    fim_entry_data *respx = fim_db_get_path(TEST_PATH_START);
+    fim_entry *respx = fim_db_get_path(TEST_PATH_START);
 
     if (!respx) {
         merror("Error in fim_db_get_path() function.");
@@ -488,7 +502,7 @@ int basic_test() {
     gettime(&end);
 
     print_fim_entry_data(respx);
-    free_entry_data(respx);
+    free_entry(respx);
 
     printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
 
@@ -497,7 +511,7 @@ int basic_test() {
     // sqlite3 fim.db "select dev, inode from entry_data where rowid in (select inode_id from entry_path group by inode_id having count(inode_id) > 2);"
     announce_function("fim_db_get_inode");
     gettime(&start);
-    fim_entry_data **resp2 = fim_db_get_inode(26423, 2050);
+    fim_entry *resp2 = fim_db_get_inode(26423, 2050);
     unsigned int j;
     if (!resp2) {
         merror("Error in fim_db_get_inode() function.");
@@ -506,10 +520,8 @@ int basic_test() {
 
     gettime(&end);
 
-    for (j = 0; resp2[j]; j++) {
-        print_fim_entry_data(resp2[j]);
-        free_entry_data(resp2[j]);
-    }
+    print_fim_entry_data(resp2);
+    free_entry(resp2);
 
     printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
 
@@ -530,7 +542,7 @@ int basic_test() {
 
     announce_function("fim_db_get_not_scanned");
     gettime(&start);
-    if (fim_db_get_not_scanned(get_all_callback)) {
+    if (fim_db_get_not_scanned(get_all_callback, NULL)) {
         merror("Error in fim_db_get_not_scanned() function.");
         return 1;
     }
@@ -556,7 +568,7 @@ int basic_test() {
 
     announce_function("fim_db_get_not_scanned");
     gettime(&start);
-    if (fim_db_get_not_scanned(get_all_callback)) {
+    if (fim_db_get_not_scanned(get_all_callback, NULL)) {
         merror("Error in fim_db_get_not_scanned() function.");
         return 1;
     }
@@ -581,7 +593,7 @@ int basic_test() {
 
     announce_function("fim_db_get_all");
     gettime(&start);
-    if (fim_db_get_all(get_all_callback)) {
+    if (fim_db_get_all(get_all_callback, NULL)) {
         merror("Error in fim_db_get_all() function.");
         return 1;
     }
@@ -593,7 +605,7 @@ int basic_test() {
 
     announce_function("fim_db_get_range");
     gettime(&start);
-    if (fim_db_get_range("/root/wazuh/wodles/oscap/content/cve-debian-8-oval.xml", "/root/wazuh/wodles/oscap/template_xccdf.xsl", get_all_callback)) {
+    if (fim_db_get_range("/root/wazuh/wodles/oscap/content/cve-debian-8-oval.xml", "/root/wazuh/wodles/oscap/template_xccdf.xsl", get_all_callback, NULL)) {
         merror("Error in fim_db_get_range() function.");
         return 1;
     }
@@ -649,7 +661,7 @@ int main(int argc, char *argv[]) {
     if (loop > 0) {
         int i;
 
-        fim_entry_data *respx = NULL;
+        fim_entry *respx = NULL;
 
         gettime(&start);
 
@@ -659,7 +671,7 @@ int main(int argc, char *argv[]) {
                 merror("Error in fim_db_get_path() function.");
                 return 1;
             }
-            free_entry_data(respx);
+            free_entry(respx);
         }
 
         gettime(&end);
@@ -668,4 +680,17 @@ int main(int argc, char *argv[]) {
 
         printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
     }
+
+    // Integridad
+    announce_function("test_integrity");
+    EVP_MD_CTX * ctx = EVP_MD_CTX_create();
+    EVP_DigestInit(ctx, EVP_sha1());
+
+    gettime(&start);
+
+    fim_db_get_all(get_all_callback, ctx);
+
+    gettime(&end);
+
+    printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
 }
