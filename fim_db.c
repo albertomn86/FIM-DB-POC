@@ -522,6 +522,7 @@ int fim_db_process_get_query(fdb_stmt query_id, const char * start, const char *
 
         fim_entry *entry = fim_decode_full_row(stmt);
         callback((void *) entry, arg);
+        free_entry(entry);
 
         if (end && !strcmp(end, path)) {
             result = SQLITE_DONE;
