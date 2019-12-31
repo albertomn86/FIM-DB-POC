@@ -217,6 +217,9 @@ void free_entry_data(fim_entry_data * data) {
     if (data->group_name) {
         os_free(data->group_name);
     }
+    if (data->attributes) {
+        os_free(data->attributes);
+    }
 
     os_free(data);
 }

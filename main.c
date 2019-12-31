@@ -622,7 +622,7 @@ int main(int argc, char *argv[]) {
 
     if (argc < 4) {
         fprintf(stderr, "\n./fim_db <type> <folder> <loop-iterations>\n\n"
-                        "\t- types{mem|disc}\n");
+                        "\t- types{mem|disk}\n");
         return 1;
     }
 
