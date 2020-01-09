@@ -25,6 +25,7 @@ typedef enum fdb_stmt {
     FIMDB_STMT_DELETE_PATH,
     FIMDB_STMT_GET_DATA_ROW,
     FIMDB_STMT_DELETE_DATA_ROW,
+    FIMDB_STMT_GET_HARDLINK_COUNT,
     FIMDB_STMT_DELETE_PATH_INODE,
     FIMDB_STMT_DISABLE_SCANNED,
     FIMDB_STMT_GET_UNIQUE_FILE,
@@ -165,9 +166,9 @@ int fim_db_set_all_unscanned(void);
 /**
  * @brief Delete all unescanned entries.
  *
- * @return FIMDB_OK on success, FIMDB_ERR otherwise.
+ * Most be used as a callback function.
  */
-int fim_db_delete_unscanned(void);
+void fim_db_delete_unscanned(fim_entry *entry, void *arg);
 
 
 /**

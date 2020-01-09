@@ -183,19 +183,18 @@ int test_fim_db_update() {
     return 0;
 }
 
-/*
 #define DEF_PATH "/home/user/test/file_"
 int fill_entries_random(unsigned int num_entries) {
 
     unsigned int i = 0;
     for(i = 0; i < num_entries; i++) {
-        fim_entry_data *data = fill_entry_struct("", rand(), "rwxrwxrwx", "attrib", "0", "0", "root", "root", rand() % 1500000000, rand() % 200000, "ce6bb0ddf75be26c928ce2722e5f1625", "53bf474924c7876e2272db4a62fc64c8e2c18b51", "c2de156835127560dc1e8139846da7b7d002ac1b72024f6efb345cf27009c54c", rand() % 3, rand() % 1500000000, rand() % 3, rand() % 1024, 0, 137, "ce6bb0ddf75be26c928ce2722e5f1625");
-        char * path = calloc(512, sizeof(char));
+        fim_entry_data *data = fill_entry_struct(rand(), "rwxrwxrwx", "attrib", "0", "0", "root", "root", rand() % 1500000000, rand() % 200000, "ce6bb0ddf75be26c928ce2722e5f1625", "53bf474924c7876e2272db4a62fc64c8e2c18b51", "c2de156835127560dc1e8139846da7b7d002ac1b72024f6efb345cf27009c54c", rand() % 3, rand() % 1500000000, rand() % 3, rand() % 1024, 0, 137, "ce6bb0ddf75be26c928ce2722e5f1625");
+        char *path = calloc(512, sizeof(char));
         snprintf(path, 512, "%s%i", DEF_PATH, i);
 
         if (fim_db_insert(path, data)) {
             printf("Error in fim_db_insert() function: %s\n", path);
-            print_fim_entry_data_full(data);
+            //print_fim_entry_data_full(data);
             return FIMDB_ERR;
         }
         free_entry_data(data);
@@ -204,59 +203,7 @@ int fill_entries_random(unsigned int num_entries) {
 
     return 0;
 }
-*/
 
-/*
-int process_sample_entries(int (*callback)(const char *path, fim_entry_data *data)) {
-    FILE *fp;
-
-    fp = fopen("sample_entries.txt", "r"); // read mode
-
-    if (fp == NULL)
-    {
-        merror("Error while opening the file.\n");
-        return -1;
-    }
-
-    char path[512];
-    int size;
-    char attributes[128] = "---------------";
-    char perm[128];
-    char uid[5];
-    char gid[5];
-    char user_name[64];
-    char group_name[64];
-    unsigned int mtime;
-    unsigned long int inode;
-    char hash_md5[33];
-    char hash_sha1[41];
-    char hash_sha256[64];
-    int mode;
-    time_t last_event;
-    int entry_type;
-    unsigned long int dev;
-    unsigned int scanned;
-    int options;
-    char checksum[33];
-
-    char line[2048];
-
-    while(fgets(line, 2048, fp)) {
-        sscanf(line, "%s %u %s %s %s %s %s %s %u %ld %s %s %s %i %lu %i %ld %u %i %s",\
-            path, &size, perm, attributes, uid, gid, user_name, group_name, &mtime, &inode, hash_md5, hash_sha1, hash_sha256, &mode, &last_event, &entry_type, &dev, &scanned, &options, checksum);
-        fim_entry_data *data = fill_entry_struct(path, size, perm, attributes, uid, gid, user_name, group_name, mtime, inode, hash_md5, hash_sha1, hash_sha256, mode, last_event, entry_type, dev, scanned, options, checksum);
-        print_fim_entry_data(data);
-        if (callback(path, data)) {
-            printf("Error in process_sample_entries() function. PATH: %s\n", path);
-            return FIMDB_ERR;
-        }
-        free_entry_data(data);
-    }
-
-    fclose(fp);
-    return 0;
-}
-*/
 
 int fim_verify_sample_entries(const char *file_path, fim_entry_data *entry) {
    fim_entry *saved_file = fim_db_get_unique_file(file_path, entry->inode, entry->dev);
@@ -479,7 +426,7 @@ int basic_test() {
     //fim_scan("/lib64");
     //fim_scan("/libx32");
     //fim_scan("/opt");
-    fim_scan("/root");
+    //fim_scan("/root");
     //fim_scan("/sbin");
     //fim_scan("/usr");
 
@@ -621,15 +568,15 @@ int basic_test() {
 int main(int argc, char *argv[]) {
 
     if (argc < 4) {
-        fprintf(stderr, "\n./fim_db <type> <folder> <loop-iterations>\n\n"
+        fprintf(stderr, "\n./fim_db <type> <number-rand-files> <loop-iterations> <test-file>\n\n"
                         "\t- types{mem|disk}\n");
         return 1;
     }
 
     nice(10);
 
-    bool type     = (!strcmp("mem", argv[1]))? true : false;
-    char * folder = argv[2];
+    bool type     =  false;
+    unsigned int num = atoi(argv[2]);
     int    loop   = atoi(argv[3]);
     char * file_test = argv[4];
 
@@ -651,13 +598,14 @@ int main(int argc, char *argv[]) {
     announce_function("test_fim_insert");
     gettime(&start);
 
-    fim_scan(folder);
+    //fim_scan(folder);
+    fill_entries_random(num);
 
     gettime(&end);
     fim_force_commit();
     printf("Time elapsed: %f\n", (double) time_diff(&end, &start));
 
-    // Search
+    //Search
     if (loop > 0) {
         int i;
 
