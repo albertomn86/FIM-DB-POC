@@ -199,27 +199,14 @@ void free_entry_data(fim_entry_data * data) {
     if (!data) {
         return;
     }
-    if (data->perm) {
-        os_free(data->perm);
-    }
-    if (data->attributes) {
-        os_free(data->attributes);
-    }
-    if (data->uid) {
-        os_free(data->uid);
-    }
-    if (data->gid) {
-        os_free(data->gid);
-    }
-    if (data->user_name) {
-        os_free(data->user_name);
-    }
-    if (data->group_name) {
-        os_free(data->group_name);
-    }
-    if (data->attributes) {
-        os_free(data->attributes);
-    }
+
+    os_free(data->perm);
+    os_free(data->attributes);
+    os_free(data->uid);
+    os_free(data->gid);
+    os_free(data->user_name);
+    os_free(data->group_name);
+    os_free(data->attributes);
 
     os_free(data);
 }
