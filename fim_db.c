@@ -451,7 +451,7 @@ void fim_db_delete_unscanned(fim_entry *entry, void *arg) {
         merror("fim_db_cache(): GET hardlink failed");
         return;
     }
-    
+
     int count = 0;
     sqlite3_bind_int(stmt, 1, row);
     if (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -461,7 +461,7 @@ void fim_db_delete_unscanned(fim_entry *entry, void *arg) {
         return;
     }
 
-    if (count == 1){ 
+    if (count == 1){
         if (fim_db_remove_inode(entry->data->inode,entry->data->dev) != FIMDB_OK){
             merror("fim_db_remove_inode(): Error deleting inode and path\n");
         }
@@ -509,8 +509,7 @@ int fim_db_update(const unsigned long int inode, const unsigned long int dev, fi
     sqlite3_bind_int(stmt, 12, entry->dev);
     sqlite3_bind_int(stmt, 13, entry->inode);
 
-    int result;
-    if (result = sqlite3_step(stmt), result != SQLITE_DONE) {
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
         merror("SQL ERROR: %s", sqlite3_errmsg(fim_db.db));
         goto end;
     }
@@ -528,7 +527,7 @@ int fim_db_update(const unsigned long int inode, const unsigned long int dev, fi
     sqlite3_bind_text(stmt, 6, entry->checksum, -1, NULL);
     sqlite3_bind_int(stmt, 7, entry->dev);
     sqlite3_bind_int(stmt, 8, entry->inode);
-    if (result = sqlite3_step(stmt), result != SQLITE_DONE) {
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
         merror("SQL ERROR: %s", sqlite3_errmsg(fim_db.db));
         goto end;
     }
@@ -562,7 +561,7 @@ int fim_db_process_get_query(fdb_stmt query_id, const char * start, const char *
 
         fim_entry *entry = fim_decode_full_row(stmt);
         callback((void *) entry, arg);
-        
+
         //fim_db_remove_inode(entry->data->inode, entry->data->dev);
         free_entry(entry);
 
